@@ -61,13 +61,22 @@ O Open WebUI (container já existente, fora deste compose) deve chamar o webhook
 `http://host.docker.internal:5678/webhook/ai-sdr`.
 
 Criar a collection do Qdrant para a base de cases (768 dimensões, compatível com o modelo de
-embedding `embeddinggemma` do Ollama):
+embedding `embeddinggemma` do Ollama) e indexar os 20 cases curados:
 
 ```bash
 curl -X PUT "http://localhost:6333/collections/ai_sdr_cases" \
   -H "Content-Type: application/json" \
   -d '{"vectors": {"size": 768, "distance": "Cosine"}}'
+
+pip install -r requirements.txt
+python3 scripts/ingest_cases.py
 ```
+
+## Base de conhecimento (RAG)
+
+[`data/cases/`](data/cases/README.md) contém 20 cases pesquisados e curados (11 reais e
+documentados publicamente + 9 cenários compostos claramente identificados) que ensinam o agente
+a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant.
 
 ## Estrutura
 
@@ -75,8 +84,13 @@ curl -X PUT "http://localhost:6333/collections/ai_sdr_cases" \
 .
 ├── README.md
 ├── docker-compose.yml   # N8N + SearXNG + Qdrant
+├── requirements.txt     # dependências Python (scripts utilitários)
 ├── .env.example         # variáveis de ambiente (sem segredos)
 ├── .gitignore
+├── data/
+│   └── cases/           # 20 cases curados (base de conhecimento do RAG)
+├── scripts/
+│   └── ingest_cases.py  # gera embeddings (Ollama) e indexa os cases no Qdrant
 ├── searxng/
 │   └── settings.yml     # habilita formato JSON (consumido pelo N8N)
 └── docs/

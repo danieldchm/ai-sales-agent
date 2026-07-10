@@ -1,0 +1,34 @@
+{
+  "id": "case-09-harvey-ai-allen-overy",
+  "titulo": "Harvey AI + Allen & Overy — GenAI real aplicada a revisão contratual e pesquisa jurídica em escala",
+  "tipo_case": "real",
+  "empresa": "Allen & Overy (A&O Shearman) + Harvey AI",
+  "industria": "Serviços Jurídicos",
+  "porte_prospect": "Grande",
+  "regiao": "Global",
+  "sintoma_demanda_inicial": "Reduzir o tempo que advogados gastam em pesquisa jurídica, revisão contratual e redação de primeiras minutas, em um escritório com milhares de advogados em dezenas de jurisdições.",
+  "classificacao_correta": "GenAI real",
+  "nuance": "Este é o caso positivo de referência: alto volume de texto não estruturado e heterogêneo (contratos variados, múltiplas jurisdições e idiomas), exigindo síntese e raciocínio sobre linguagem — exatamente o ponto forte de um LLM com RAG sobre a base de conhecimento jurídico do escritório.",
+  "sinais_diagnostico": [
+    "Volume massivo de documentos não padronizados (diferentes tipos de contrato, jurisdições, idiomas) — RPA clássico não escala bem aqui, pois não há um template fixo para extrair.",
+    "Tarefa central é síntese e redação em linguagem natural (pesquisa, minutas, análise regulatória), não apenas extração de campos estruturados.",
+    "Alto valor por hora do profissional envolvido (advogado sênior), o que justifica o investimento em uma solução de GenAI com curadoria e governança robustas."
+  ],
+  "abordagem_recomendada": "GenAI real com RAG sobre a base de conhecimento jurídico proprietária do escritório/empresa, mantendo o advogado no loop para validação final — GenAI acelera pesquisa e primeira minuta, humano decide e assina.",
+  "perguntas_discovery_chave": [
+    "Os documentos que precisam ser analisados seguem um template fixo, ou variam muito em estrutura e jurisdição?",
+    "O objetivo é extrair dados já existentes ou também gerar/redigir texto novo (minutas, pareceres)?",
+    "Qual o custo-hora do profissional cujo tempo será liberado, para embasar o cálculo de ROI?"
+  ],
+  "resultado_licao": "Mais de 3.500 advogados da A&O fizeram cerca de 40.000 consultas ao Harvey durante o piloto; após a adoção firmwide, mais de 4.000 advogados em 43 jurisdições economizam em média 2–3 horas por semana, com redução de 30% no tempo de revisão contratual — hoje mais de 40% das maiores bancas do mundo (AmLaw 100) usam a ferramenta.",
+  "fontes": [
+    {
+      "titulo": "A&O announces exclusive launch partnership with Harvey",
+      "url": "https://www.aoshearman.com/en/news/ao-announces-exclusive-launch-partnership-with-harvey"
+    },
+    {
+      "titulo": "Which Law Firms Use AI? Case Studies from BigLaw to Solo Practices — Spellbook",
+      "url": "https://spellbook.com/learn/law-firms-using-ai"
+    }
+  ]
+}

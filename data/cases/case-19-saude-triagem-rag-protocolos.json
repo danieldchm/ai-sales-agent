@@ -1,0 +1,25 @@
+{
+  "id": "case-19-saude-triagem-rag-protocolos",
+  "titulo": "[Cenário composto] Rede de clínicas precisa de um assistente de triagem que sintetize protocolos clínicos não padronizados — aqui GenAI real se justifica",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Saúde",
+  "porte_prospect": "Grande",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Apoiar a equipe de triagem/enfermagem a decidir o direcionamento inicial do paciente (urgência, especialidade), com base em protocolos clínicos internos extensos e frequentemente atualizados.",
+  "classificacao_correta": "GenAI real",
+  "sinais_diagnostico": [
+    "A base de conhecimento (protocolos clínicos) é extensa, em texto não estruturado, e muda com alguma frequência — RAG é a arquitetura correta, não um sistema de regras fixas.",
+    "A tarefa central é sintetizar e responder em linguagem natural com base em múltiplos documentos-fonte, não extrair um campo de um formulário.",
+    "Existe variação real na forma como cada caso é descrito pelo paciente/atendente — não é uma pergunta única e previsível."
+  ],
+  "abordagem_recomendada": "GenAI real com RAG obrigatoriamente ancorado nos protocolos oficiais vigentes (nunca 'conhecimento geral' do modelo em temas clínicos), sempre com o profissional de saúde no loop para a decisão final, e log auditável de toda recomendação dada.",
+  "perguntas_discovery_chave": [
+    "Os protocolos clínicos usados como referência estão centralizados e atualizados, ou dispersos em múltiplas fontes?",
+    "O profissional de saúde permanece com a decisão final em 100% dos casos, ou o sistema decide sozinho em algum cenário?",
+    "Existe um processo de auditoria/log das recomendações dadas pelo assistente, para revisão e correção contínua?"
+  ],
+  "resultado_licao": "Este é o contraponto positivo aos cases 3 (Zillow) e 5 (Watson Oncology): aqui a natureza do problema (síntese de texto não estruturado e variável) realmente pede GenAI real — o risco não está na escolha da tecnologia, mas em manter a governança (RAG ancorado, humano no loop, auditoria) descrita nos sinais de diagnóstico.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

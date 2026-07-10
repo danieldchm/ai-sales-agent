@@ -1,0 +1,34 @@
+{
+  "id": "case-03-zillow-offers-forecasting",
+  "titulo": "Zillow Offers — modelo de precificação imobiliária (BI/ML preditivo) que não era GenAI, e falhou por concept drift",
+  "tipo_case": "real",
+  "empresa": "Zillow",
+  "industria": "Real Estate / Proptech",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA)",
+  "sintoma_demanda_inicial": "Usar o algoritmo de avaliação de imóveis (Zestimate) para comprar e revender milhares de casas automaticamente (iBuying), decidindo preço de compra sem avaliação humana caso a caso.",
+  "classificacao_correta": "BI",
+  "nuance": "Não é um caso de GenAI — é modelagem estatística/ML preditiva clássica (forecasting de preços) aplicada a um mercado volátil, sem processo de recalibração rápido o suficiente. Incluído para mostrar como 'IA' vira rótulo genérico para o que é, na prática, um problema de BI e ciência de dados tradicional.",
+  "sinais_diagnostico": [
+    "A demanda é sobre prever um valor numérico (preço) a partir de dados históricos estruturados — clássico problema de modelagem preditiva/BI, não de linguagem natural ou geração de conteúdo.",
+    "O modelo dependia de dados de mercado com até 30 dias de defasagem — sinal de risco de 'concept drift' que precisa ser testado no discovery.",
+    "Decisões de alto valor financeiro (compra de imóveis) sendo tomadas de forma automática, sem humano no loop para revisar outliers."
+  ],
+  "abordagem_recomendada": "Modelagem preditiva com monitoramento contínuo de drift, gatilhos automáticos de revisão humana quando o mercado sai da faixa histórica de treino, e nunca 100% de automação em decisões financeiras de alto valor sem humano validando os extremos.",
+  "perguntas_discovery_chave": [
+    "Com que frequência os dados que alimentam o modelo são atualizados, e qual o atraso entre o dado e a decisão?",
+    "O que acontece quando o mercado sai do padrão histórico usado para treinar o modelo — existe um alerta automático?",
+    "Qual o tamanho do prejuízo aceitável em caso de erro de precificação, e isso está refletido no desenho de aprovação humana?"
+  ],
+  "resultado_licao": "A Zillow encerrou a operação Zillow Offers em 2021 após um write-down de mais de US$500 milhões e demissão de 25% do quadro, quando o algoritmo não conseguiu se adaptar à mudança do mercado imobiliário pós-pandemia (concept drift), comprando ~7.000 casas por valores acima do mercado.",
+  "fontes": [
+    {
+      "titulo": "Flip Flop: Why Zillow's Algorithmic Home Buying Venture Imploded — Stanford GSB",
+      "url": "https://www.gsb.stanford.edu/insights/flip-flop-why-zillows-algorithmic-home-buying-venture-imploded"
+    },
+    {
+      "titulo": "The $500mm+ Debacle at Zillow Offers – What Went Wrong with the AI Models?",
+      "url": "https://insideainews.com/2021/12/13/the-500mm-debacle-at-zillow-offers-what-went-wrong-with-the-ai-models/"
+    }
+  ]
+}

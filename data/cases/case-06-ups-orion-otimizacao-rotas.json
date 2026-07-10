@@ -1,0 +1,34 @@
+{
+  "id": "case-06-ups-orion-otimizacao-rotas",
+  "titulo": "UPS ORION — otimização de rotas de entrega é automação clássica/pesquisa operacional, não Machine Learning nem GenAI",
+  "tipo_case": "real",
+  "empresa": "UPS",
+  "industria": "Logística",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA)",
+  "sintoma_demanda_inicial": "Reduzir custo de combustível e tempo de entrega calculando a melhor rota diária para cada motorista, considerando ~100 paradas e restrições operacionais (ex.: evitar conversões à esquerda).",
+  "classificacao_correta": "Automação clássica",
+  "nuance": "ORION é um sistema de otimização combinatória (pesquisa operacional/algoritmos determinísticos sobre +200 mil variações de rota), não Machine Learning nem GenAI. É o exemplo perfeito de demanda que, hoje, um prospect chamaria de 'projeto de IA' mas que é resolvido com algoritmos de otimização já maduros e sem qualquer LLM.",
+  "sinais_diagnostico": [
+    "O problema é bem definido matematicamente (otimização combinatória com restrições conhecidas), não exige aprendizado a partir de dados não estruturados nem geração de linguagem.",
+    "As regras de negócio (evitar conversão à esquerda, priorizar paradas conhecidas) são explícitas e podem ser codificadas diretamente, não precisam ser 'aprendidas' por um modelo.",
+    "O ROI vem de escala determinística (mesma lógica aplicada a milhares de rotas por dia), não de personalização caso a caso que só um modelo generativo resolveria."
+  ],
+  "abordagem_recomendada": "Motor de otimização/pesquisa operacional (ex.: programação linear, algoritmos genéticos, heurísticas de roteirização) — tecnologia madura, previsível e auditável, sem o custo e a imprevisibilidade de um LLM para um problema que não é de linguagem natural.",
+  "perguntas_discovery_chave": [
+    "As regras de decisão deste processo podem ser escritas hoje como uma lista explícita, ou dependem de interpretar contexto/linguagem não estruturada?",
+    "O que o prospect espera que 'IA' resolva aqui que um motor de otimização tradicional não resolveria?",
+    "Existe algum componente de linguagem natural neste fluxo (ex.: atendimento, geração de texto) ou é 100% numérico/logístico?"
+  ],
+  "resultado_licao": "ORION economiza para a UPS cerca de 100 milhões de milhas e 10 milhões de galões de combustível por ano, com US$300-400 milhões em economia anual — um dos maiores casos de ROI em otimização logística do mundo, alcançado sem nenhuma técnica de IA generativa ou aprendizado profundo.",
+  "fontes": [
+    {
+      "titulo": "UPS On-Road Integrated Optimization and Navigation (ORION) Project — INFORMS",
+      "url": "https://www.informs.org/Impact/O.R.-Analytics-Success-Stories/Optimizing-Delivery-Routes"
+    },
+    {
+      "titulo": "AI Case Study | UPS saves 10 million gallons of fuel and $100 million per year",
+      "url": "https://www.bestpractice.ai/ai-case-study-best-practice/ups_saves_10_million_gallons_of_fuel_and_$100_million_per_year_by_optimising_driver_delivery_routes_that_consider_real-time_traffic_and_weather_information_obtained_from_social_media_and_machine_learning"
+    }
+  ]
+}

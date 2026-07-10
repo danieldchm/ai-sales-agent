@@ -1,0 +1,30 @@
+{
+  "id": "case-13-seguradora-extracao-sinistros",
+  "titulo": "[Cenário composto] Seguradora pede 'IA generativa para analisar sinistros', mas 80% do volume é formulário padrão",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Seguros",
+  "porte_prospect": "Média",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Analisar e classificar sinistros recebidos por e-mail e formulário web, hoje digitados manualmente no sistema interno pela equipe de sinistros.",
+  "classificacao_correta": "RPA",
+  "sinais_diagnostico": [
+    "Ao investigar o volume real, ~80% dos sinistros chegam em um formulário padronizado (mesmos campos, mesma estrutura) — extração de dados clássica (RPA + OCR), não interpretação aberta.",
+    "Apenas uma minoria (~20%) chega por e-mail livre com relatos não estruturados, e é essa fatia que de fato se beneficiaria de GenAI/RAG.",
+    "O prospect enquadrou o projeto inteiro como 'IA generativa' antes de segmentar o volume por tipo de entrada — erro comum de discovery raso."
+  ],
+  "abordagem_recomendada": "Solução híbrida: RPA/OCR para o formulário padrão (80% do volume, ROI rápido) + um módulo de GenAI real, isolado, apenas para os casos de texto livre/não estruturado — não tratar como um único projeto monolítico de 'IA'.",
+  "perguntas_discovery_chave": [
+    "Qual % do volume chega em formato padronizado vs. texto livre, e essa proporção foi medida ou é uma estimativa?",
+    "O ROI esperado do projeto está baseado no volume total ou já segmentado por tipo de entrada?",
+    "Faz sentido separar este projeto em duas frentes com cronogramas e tecnologias diferentes?"
+  ],
+  "resultado_licao": "Segmentar a demanda por tipo de dado de entrada (estruturado vs. não estruturado) antes de classificar o projeto inteiro como 'GenAI' evita superdimensionar a proposta e acelera o ROI da parte mais simples (RPA) enquanto a parte de GenAI é validada em paralelo com escopo menor.",
+  "fontes": [
+    {
+      "titulo": "What Is the Impact of AI on RPA? — Gartner",
+      "url": "https://www.gartner.com/en/documents/6533102"
+    }
+  ],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

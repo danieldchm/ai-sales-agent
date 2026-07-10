@@ -1,0 +1,34 @@
+{
+  "id": "case-11-nubank-nuformer-credito",
+  "titulo": "Nubank (nuFormer/NuScore) — modelagem preditiva de risco de crédito, não GenAI, com forte ROI no mercado brasileiro",
+  "tipo_case": "real",
+  "empresa": "Nubank",
+  "industria": "Bancos / Fintech",
+  "porte_prospect": "Grande",
+  "regiao": "Brasil / LatAm",
+  "sintoma_demanda_inicial": "Melhorar a decisão de concessão e aumento de limite de crédito, ampliando o acesso a crédito sem piorar a qualidade da carteira (inadimplência).",
+  "classificacao_correta": "BI",
+  "nuance": "Mesmo usando arquiteturas de 'foundation model' (transformers) sobre dados transacionais — tecnicamente sofisticado — o produto final é um score de risco (um número), não texto gerado ou uma conversa. É modelagem preditiva/Data Science, categoria 'BI' para fins de discovery comercial, mesmo com tecnologia de ponta por trás.",
+  "sinais_diagnostico": [
+    "O output esperado é um score numérico (0 a 1000) ou uma decisão binária de crédito, não texto, resposta a perguntas ou conteúdo gerado.",
+    "O ganho vem de melhor uso de dados transacionais estruturados/comportamentais em escala (>100 TB, 1.000+ indicadores monitorados), não de compreensão de linguagem natural.",
+    "Existe um histórico de dados rotulados (pagou/não pagou) para treinar e validar o modelo de forma supervisionada — sinal claro de projeto de Data Science clássico, ainda que com técnicas avançadas."
+  ],
+  "abordagem_recomendada": "Modelagem preditiva/Data Science (podendo usar arquiteturas modernas como transformers sobre dados tabulares/transacionais), com monitoramento contínuo de performance do modelo (drift, inadimplência realizada vs. prevista) — não é um projeto de GenAI, mesmo sendo 'IA de ponta'.",
+  "perguntas_discovery_chave": [
+    "O resultado final do que o prospect chama de 'IA' é um número/decisão ou um texto/conversa gerado?",
+    "Existe histórico de dados rotulados suficiente (outcome real conhecido) para treinar e validar esse modelo de forma supervisionada?",
+    "Como a performance do modelo é monitorada ao longo do tempo (inadimplência prevista vs. realizada)?"
+  ],
+  "resultado_licao": "O modelo nuFormer entregou uma redução de 70% no risco para uma população equivalente comparado a gerações anteriores; em abril de 2025 o NuScore (score proprietário de 0 a 1000) foi lançado no Brasil, e os write-offs seguem estáveis em 2,8%-2,9% mesmo com expansão de crédito — prova de que 'IA' de altíssimo impacto financeiro nem sempre é GenAI.",
+  "fontes": [
+    {
+      "titulo": "How Nubank models risk for smarter, scalable credit limit increases — Building Nubank",
+      "url": "https://building.nubank.com/how-nubank-models-risk-for-smarter-scalable-credit-limit-increases/"
+    },
+    {
+      "titulo": "Nu's AI-powered credit model extends access while maintaining portfolio quality",
+      "url": "https://international.nubank.com.br/company/nubanks-ai-powered-credit-model-extends-access-while-maintaining-portfolio-quality/"
+    }
+  ]
+}

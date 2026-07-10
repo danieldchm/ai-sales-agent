@@ -1,0 +1,30 @@
+{
+  "id": "case-15-manufatura-manutencao-preditiva",
+  "titulo": "[Cenário composto] Indústria pede 'IA generativa para prever falhas de máquina', solução correta é BI/ML preditivo com séries temporais",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Manufatura / Indústria",
+  "porte_prospect": "Grande",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Prever falhas de equipamentos na linha de produção antes que aconteçam, usando os dados de sensores IoT já instalados nas máquinas.",
+  "classificacao_correta": "BI",
+  "sinais_diagnostico": [
+    "O dado de entrada é numérico e seriado no tempo (temperatura, vibração, corrente elétrica) — problema clássico de séries temporais/ML preditivo, não linguagem natural.",
+    "O output esperado é um alerta ou uma probabilidade de falha em uma janela de tempo — não texto gerado nem uma conversa.",
+    "Já existe um histórico de falhas rotuladas (quando a máquina quebrou de fato), permitindo treinar um modelo supervisionado clássico."
+  ],
+  "abordagem_recomendada": "Modelagem preditiva de séries temporais (estatística clássica ou ML supervisionado) com dashboard de BI para visualização de risco por equipamento — GenAI não agrega valor direto ao núcleo da previsão, podendo no máximo gerar o resumo textual do alerta para o time de manutenção.",
+  "perguntas_discovery_chave": [
+    "Existe histórico de falhas reais rotuladas para treinar e validar um modelo preditivo?",
+    "O que se espera como output final: um número/probabilidade, um dashboard, ou uma explicação em linguagem natural?",
+    "Os sensores já instalados capturam os sinais relevantes com a frequência necessária para prever a falha a tempo de agir?"
+  ],
+  "resultado_licao": "Manutenção preditiva é um dos casos mais maduros e bem documentados de ROI com BI/ML clássico na indústria — não é necessário (nem eficiente) usar GenAI para resolver o núcleo do problema, que é estatístico.",
+  "fontes": [
+    {
+      "titulo": "AI disruption in ERP: Modernizing with embedded AI — McKinsey",
+      "url": "https://www.mckinsey.com/capabilities/mckinsey-technology/our-insights/the-end-of-erp-as-we-know-it-five-ways-ai-is-disrupting-erp"
+    }
+  ],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

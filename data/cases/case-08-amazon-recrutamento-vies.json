@@ -1,0 +1,34 @@
+{
+  "id": "case-08-amazon-recrutamento-vies",
+  "titulo": "Amazon — ferramenta de triagem de currículos por ML foi descontinuada por viés de gênero",
+  "tipo_case": "real",
+  "empresa": "Amazon",
+  "industria": "Tecnologia / RH",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA)",
+  "sintoma_demanda_inicial": "Automatizar a triagem inicial de currículos técnicos para acelerar o processo de recrutamento, usando o histórico de contratações anteriores para 'aprender' o perfil de bons candidatos.",
+  "classificacao_correta": "BI",
+  "nuance": "Não é GenAI — é um modelo de classificação supervisionada clássico (Data Science/ML preditivo), treinado sobre 10 anos de currículos recebidos. Incluído como alerta de governança: qualquer modelo preditivo (BI/ML) treinado em decisões humanas passadas pode replicar e amplificar viés histórico, e isso precisa ser testado no discovery, não só em projetos de GenAI.",
+  "sinais_diagnostico": [
+    "O modelo aprendeu com dados históricos de contratação em uma indústria (tech) historicamente dominada por um perfil específico de candidato — sinal de risco de viés herdado dos dados de treino.",
+    "O time de dados tentou corrigir termos específicos (ex. 'women's') mas não conseguiu garantir neutralidade em todas as dimensões — sinal de que o problema era estrutural nos dados, não pontual no modelo.",
+    "Decisão de alto impacto nas pessoas (contratação) sendo automatizada sem auditoria de viés antes do deploy."
+  ],
+  "abordagem_recomendada": "Antes de qualquer projeto de triagem/scoring baseado em decisões humanas históricas, rodar uma auditoria de viés nos dados de treino e definir métricas de equidade (fairness) como critério de aceite do modelo, não apenas acurácia agregada.",
+  "perguntas_discovery_chave": [
+    "Os dados históricos usados para treinar este modelo refletem decisões humanas passadas que podem conter viés?",
+    "Existe hoje algum processo de auditoria de equidade/fairness para modelos preditivos usados em decisões sobre pessoas?",
+    "Quem é o responsável caso o modelo demonstre viés após entrar em produção?"
+  ],
+  "resultado_licao": "A Amazon encerrou o projeto em 2018 após 4 anos de desenvolvimento, quando ficou claro que a ferramenta penalizava sistematicamente currículos com termos associados a mulheres (ex.: 'women's chess club') e não foi possível garantir neutralidade de gênero mesmo após ajustes.",
+  "fontes": [
+    {
+      "titulo": "Amazon scraps a secret A.I. recruiting tool that showed bias against women — CNBC",
+      "url": "https://www.cnbc.com/2018/10/10/amazon-scraps-a-secret-ai-recruiting-tool-that-showed-bias-against-women.html"
+    },
+    {
+      "titulo": "Why Amazon's Automated Hiring Tool Discriminated Against Women — ACLU",
+      "url": "https://www.aclu.org/news/womens-rights/why-amazons-automated-hiring-tool-discriminated-against"
+    }
+  ]
+}

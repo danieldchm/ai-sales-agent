@@ -1,0 +1,34 @@
+{
+  "id": "case-01-klarna-atendimento-genai",
+  "titulo": "Klarna — assistente de atendimento com GenAI: sucesso operacional, mas over-automation gerou retração",
+  "tipo_case": "real",
+  "empresa": "Klarna",
+  "industria": "Fintech / Pagamentos",
+  "porte_prospect": "Grande",
+  "regiao": "Global (Europa/EUA)",
+  "sintoma_demanda_inicial": "Reduzir custo e tempo de resposta do atendimento ao cliente, que crescia junto com a base de usuários; buscavam desviar volume de chamados repetitivos dos agentes humanos.",
+  "classificacao_correta": "GenAI real",
+  "nuance": "GenAI foi a escolha certa para o volume/linguagem natural, mas a execução foi longe demais: substituiu quase todo o atendimento humano, inclusive casos que exigiam empatia/nuance, gerando queda de satisfação e reversão parcial em 2025.",
+  "sinais_diagnostico": [
+    "Alto volume de perguntas repetitivas em linguagem natural, em 35+ idiomas — bom encaixe para um LLM.",
+    "Necessidade de compreensão contextual (histórico do cliente, tom), não apenas respostas de FAQ fixas — descarta automação clássica simples.",
+    "Presença de casos emocionalmente sensíveis/complexos (disputas, reembolsos incomuns) que exigem julgamento humano — sinal de que 100% de automação é o problema, não o uso de GenAI em si."
+  ],
+  "abordagem_recomendada": "Adotar GenAI para triagem e resolução do primeiro nível de atendimento, mas desenhar desde o início um critério explícito de escalonamento para humanos em casos de baixa confiança, alta insatisfação detectada ou temas sensíveis — não tratar 'substituição total' como meta.",
+  "perguntas_discovery_chave": [
+    "Qual % do volume de atendimento é hoje resolvido em uma única interação, sem necessidade de julgamento humano?",
+    "Existe algum critério hoje (ainda que informal) para escalar um atendimento para um humano? Qual seria o critério ideal?",
+    "Como a empresa mede hoje satisfação do cliente pós-atendimento, e essa métrica está atrelada à meta do projeto?"
+  ],
+  "resultado_licao": "Entre fev/2024 e meados de 2025 a IA chegou a fazer o trabalho equivalente a 853 agentes e ~US$60M em economia anual, com respostas 82% mais rápidas. Mas a partir de 2025 a Klarna reverteu parte da automação e voltou a contratar humanos, após o CEO reconhecer publicamente que 'foram longe demais' e a qualidade percebida caiu. Lição para o discovery: a pergunta certa não é 'GenAI ou humano', é 'qual fatia do volume cada um deve atender'.",
+  "fontes": [
+    {
+      "titulo": "Klarna Reverses AI Push, Says Customers Prefer Human Support — Forbes",
+      "url": "https://www.forbes.com/sites/quickerbettertech/2025/05/18/business-tech-news-klarna-reverses-on-ai-says-customers-like-talking-to-people/"
+    },
+    {
+      "titulo": "Klarna CEO admits aggressive AI job cuts went too far, starts hiring again after US IPO",
+      "url": "https://mlq.ai/news/klarna-ceo-admits-aggressive-ai-job-cuts-went-too-far-starts-hiring-again-after-us-ipo/"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "case-18-logistica-notificacoes-status",
+  "titulo": "[Cenário composto] Transportadora pede 'chatbot inteligente' para rastreamento, resolvido com notificação automática simples",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Logística / Transporte",
+  "porte_prospect": "Média",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Reduzir o volume de ligações de clientes perguntando 'onde está minha encomenda', criando um 'chatbot inteligente' de rastreamento.",
+  "classificacao_correta": "Automação clássica",
+  "sinais_diagnostico": [
+    "A informação que o cliente quer (status atual da entrega) já existe estruturada no sistema de logística — não precisa ser 'gerada' nem interpretada.",
+    "O padrão de pergunta é único e previsível ('onde está meu pedido X') — não há variação de linguagem que justifique um LLM.",
+    "Um webhook/notificação automática (SMS, WhatsApp via API, e-mail) já resolveria proativamente antes mesmo do cliente perguntar."
+  ],
+  "abordagem_recomendada": "Integração simples entre o sistema de rastreamento e um canal de notificação (WhatsApp Business API, SMS, e-mail) disparada automaticamente a cada mudança de status — sem necessidade de chatbot conversacional nem GenAI.",
+  "perguntas_discovery_chave": [
+    "O cliente pergunta 'onde está meu pedido' de formas muito variadas, ou é sempre a mesma pergunta em essência?",
+    "Por que esperar o cliente perguntar, em vez de notificar proativamente a cada mudança de status?",
+    "Existe alguma variação de pergunta (ex.: 'por que está atrasado', 'posso mudar o endereço') que já não seria resolvida só com notificação de status?"
+  ],
+  "resultado_licao": "Quando a 'pergunta' do cliente tem uma resposta única e previsível, notificação proativa resolve melhor e mais barato do que um chatbot — só vale a pena subir a régua para GenAI real se houver variação genuína de intenção/pergunta (ex.: mudar endereço, negociar prazo), o que deve ser validado no discovery antes de propor a solução mais cara.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

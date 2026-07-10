@@ -1,0 +1,25 @@
+{
+  "id": "case-20-juridico-corporativo-rag-contratos",
+  "titulo": "[Cenário composto] Departamento jurídico interno de uma indústria precisa de busca semântica sobre milhares de contratos não padronizados",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Jurídico corporativo (indústria/manufatura como cliente final)",
+  "porte_prospect": "Grande",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Encontrar rapidamente cláusulas específicas (ex.: reajuste, rescisão, multa) em milhares de contratos de fornecedores acumulados ao longo de anos, hoje buscados manualmente por palavra-chave em PDFs.",
+  "classificacao_correta": "GenAI real",
+  "sinais_diagnostico": [
+    "Os contratos vêm de dezenas de fornecedores diferentes, cada um com seu próprio template — RPA de extração por template fixo (como no case 7, JPMorgan) não escala aqui pela falta de padronização.",
+    "A busca por palavra-chave já existe e falha porque a mesma cláusula é redigida de formas diferentes por fornecedores diferentes — sinal claro de que se precisa de busca semântica (embeddings), não apenas full-text search.",
+    "O objetivo é encontrar e sintetizar informação existente em linguagem natural, não gerar contratos novos do zero."
+  ],
+  "abordagem_recomendada": "RAG com busca semântica (embeddings) sobre a base de contratos, retornando o trecho relevante + a fonte exata (contrato e página) para validação humana — GenAI real complementando, não substituindo, o julgamento do time jurídico.",
+  "perguntas_discovery_chave": [
+    "A busca por palavra-chave já foi tentada e qual foi especificamente a limitação encontrada?",
+    "Os contratos têm um template comum entre fornecedores, ou cada um redige de forma diferente?",
+    "O resultado esperado é apenas 'encontrar o trecho' ou também 'resumir/comparar cláusulas entre vários contratos'?"
+  ],
+  "resultado_licao": "Diferente do case 7 (JPMorgan COIN), onde o formato padronizado permite RPA/extração clássica, aqui a falta de padronização entre fornecedores é o sinal decisivo que empurra a solução para GenAI real com RAG — o mesmo tipo de demanda superficial ('organizar contratos') pode pedir tecnologias completamente diferentes dependendo de um único sinal de diagnóstico: o documento segue um template fixo ou não.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

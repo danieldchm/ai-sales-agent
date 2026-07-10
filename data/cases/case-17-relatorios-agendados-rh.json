@@ -1,0 +1,25 @@
+{
+  "id": "case-17-relatorios-agendados-rh",
+  "titulo": "[Cenário composto] Área de RH/Contabilidade pede 'automação com IA' para relatórios mensais fixos",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Serviços administrativos / RH",
+  "porte_prospect": "Pequena",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Gerar automaticamente, todo início de mês, um conjunto fixo de relatórios (folha de pagamento consolidada, headcount por área) hoje montados manualmente em planilha a partir de exports do sistema de RH.",
+  "classificacao_correta": "Automação clássica",
+  "sinais_diagnostico": [
+    "O relatório tem estrutura e fórmulas fixas, que não mudam de mês a mês — não há necessidade de interpretação nem de decisão.",
+    "A tarefa é 100% determinística: extrair dado do sistema de origem, aplicar a mesma fórmula, gerar o mesmo layout de saída.",
+    "O time já sabe exatamente o que precisa, apenas não tem tempo/conhecimento técnico para automatizar um script/ETL simples."
+  ],
+  "abordagem_recomendada": "Script agendado (ETL simples) ou automação de baixo código (ex.: fluxo no próprio N8N) que exporta, transforma e formata os dados automaticamente todo mês — sem qualquer modelo de IA envolvido.",
+  "perguntas_discovery_chave": [
+    "O layout e as fórmulas do relatório mudam de mês a mês, ou são sempre as mesmas?",
+    "Existe alguma etapa deste processo que hoje exige julgamento humano, ou é 100% mecânico?",
+    "Por que o termo 'IA' foi usado para descrever esta necessidade?"
+  ],
+  "resultado_licao": "Este é o exemplo mais simples do canvas original do projeto: demanda rotulada como 'IA' que uma automação clássica de baixo custo resolve completamente — o discovery correto aqui evita uma venda de projeto de IA desnecessariamente caro e complexo para o prospect.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

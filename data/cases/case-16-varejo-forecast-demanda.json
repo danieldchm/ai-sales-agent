@@ -1,0 +1,25 @@
+{
+  "id": "case-16-varejo-forecast-demanda",
+  "titulo": "[Cenário composto] Varejista quer 'agente de IA para prever vendas', solução é forecasting estatístico clássico",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Varejo",
+  "porte_prospect": "Média",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Prever a demanda de produtos sazonais (ex.: datas comemorativas) por loja, para melhorar o planejamento de reposição de estoque.",
+  "classificacao_correta": "BI",
+  "sinais_diagnostico": [
+    "Histórico de vendas estruturado de vários anos já disponível por SKU e loja — insumo clássico de forecasting.",
+    "Sazonalidade e tendência são os principais fatores explicativos, um domínio bem coberto por métodos estatísticos consolidados (ex.: modelos de séries temporais).",
+    "Não há componente de linguagem natural, geração de conteúdo ou interação conversacional envolvido no núcleo do problema."
+  ],
+  "abordagem_recomendada": "Forecasting estatístico/ML supervisionado sobre dados históricos de vendas, com dashboard de BI para o time de planejamento acompanhar acurácia por categoria/loja — sem necessidade de LLM no núcleo da solução.",
+  "perguntas_discovery_chave": [
+    "Quantos anos de histórico de vendas estruturado estão disponíveis por SKU e loja?",
+    "O time de planejamento já usa alguma ferramenta de forecasting hoje, e qual a lacuna percebida?",
+    "O que exatamente motivou o prospect a chamar isso de 'projeto de IA generativa'?"
+  ],
+  "resultado_licao": "Forecasting de demanda é um caso de BI/Data Science maduro há décadas; nomear como 'GenAI' geralmente reflete apenas a visibilidade recente do termo na mídia, não uma mudança real na natureza técnica do problema.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica."
+}

@@ -1,0 +1,34 @@
+{
+  "id": "case-10-lemonade-ai-jim-sinistros",
+  "titulo": "Lemonade 'AI Jim' — automação de sinistros de seguro em 2 segundos, majoritariamente RPA + ML antifraude",
+  "tipo_case": "real",
+  "empresa": "Lemonade",
+  "industria": "Seguros / Insurtech",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA, com expansão internacional)",
+  "sintoma_demanda_inicial": "Acelerar drasticamente o tempo de aprovação de sinistros de seguro (que tradicionalmente leva dias/semanas), reduzindo o custo operacional por sinistro.",
+  "classificacao_correta": "RPA",
+  "nuance": "Apesar de ser vendido como 'IA', o núcleo do AI Jim é automação de processo (verificação de regras da apólice + algoritmos antifraude) — a camada conversacional usa NLU para coletar informação do segurado, mas a decisão final de aprovar é baseada em regras e scoring, não em geração aberta de texto.",
+  "sinais_diagnostico": [
+    "O processo de decisão (aprovar ou não um sinistro) segue regras de política claramente definíveis, combinadas com checagens antifraude baseadas em padrões — não exige raciocínio aberto de um LLM.",
+    "A interface conversacional com o cliente é a parte mais 'IA-like', mas serve para coleta estruturada de dados, não para decisões abertas.",
+    "Escala e velocidade (2 segundos, ~metade dos sinistros hoje 100% automatizados) indicam um pipeline determinístico bem desenhado, não uma solução generativa caso a caso."
+  ],
+  "abordagem_recomendada": "RPA + regras de negócio + modelo de scoring antifraude para o núcleo de decisão; a camada de NLU/chat pode usar um LLM leve apenas para tornar a coleta de informação mais natural, sem que isso mude a classificação principal do projeto.",
+  "perguntas_discovery_chave": [
+    "A decisão final (aprovar/negar/escalar) segue regras de negócio conhecidas, ou depende de julgamento caso a caso?",
+    "Que papel exato o 'componente conversacional' cumpre: coletar dados estruturados, ou também interpretar e decidir?",
+    "Qual a meta de % de casos totalmente automatizados vs. escalados para humano, e como isso é medido hoje?"
+  ],
+  "resultado_licao": "A Lemonade bateu recorde ao liquidar um sinistro real em 2 segundos; ao final de 2025, 96% dos avisos de sinistro são recebidos por esses assistentes sem intervenção humana e 55% dos sinistros são 100% automatizados do início ao fim — um case de automação de processo bem-sucedido, ainda que rotulado publicamente como 'IA'.",
+  "fontes": [
+    {
+      "titulo": "Lemonade sets world record with 2-second AI insurance claim",
+      "url": "https://aimagazine.com/articles/lemonade-sets-world-record-with-2-second-ai-insurance-claim"
+    },
+    {
+      "titulo": "How Conversational AI Made Lemonade the Fastest-Growing AI Insurance Company",
+      "url": "https://getperspective.ai/blog/lemonade-case-study-conversational-ai-insurance"
+    }
+  ]
+}

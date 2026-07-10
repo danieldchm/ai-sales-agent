@@ -1,0 +1,34 @@
+{
+  "id": "case-02-air-canada-chatbot-responsabilidade",
+  "titulo": "Air Canada — chatbot deu informação incorreta e a empresa foi responsabilizada judicialmente",
+  "tipo_case": "real",
+  "empresa": "Air Canada",
+  "industria": "Aviação / Turismo",
+  "porte_prospect": "Grande",
+  "regiao": "Global (Canadá)",
+  "sintoma_demanda_inicial": "Um chatbot de atendimento que responda dúvidas de política comercial (tarifas, reembolsos) sem envolver um humano.",
+  "classificacao_correta": "GenAI real",
+  "nuance": "O uso de um assistente conversacional fazia sentido para o volume de dúvidas, mas faltou governança: o chatbot deu uma informação sobre política de tarifas de luto que contradizia a política oficial, e a empresa foi condenada a indenizar — o tribunal decidiu que a empresa é responsável pelo que o chatbot diz, como se fosse uma página do site.",
+  "sinais_diagnostico": [
+    "Domínio com regras de negócio que mudam com frequência (políticas tarifárias) — alto risco de o modelo 'alucinar' ou usar informação desatualizada se não houver RAG bem mantido sobre a fonte oficial vigente.",
+    "Ausência de disclaimer visível de que a resposta pode conter erros e deve ser confirmada — falha de governança, não de modelo.",
+    "Nenhum mecanismo citado de auditoria/log das respostas dadas para permitir correção rápida."
+  ],
+  "abordagem_recomendada": "GenAI real com RAG obrigatoriamente ancorado na fonte única e atualizada das políticas (não em texto gerado 'de memória' do modelo), mais um disclaimer claro e um processo de auditoria de respostas — a decisão de usar IA generativa estava certa, o gap era de governança e arquitetura RAG.",
+  "perguntas_discovery_chave": [
+    "As políticas/regras que o agente vai comunicar mudam com que frequência, e como a fonte oficial é atualizada hoje?",
+    "Existe hoje um processo de auditoria para revisar respostas dadas pelo canal automatizado?",
+    "Quem assume a responsabilidade legal/contratual por uma informação incorreta dada pelo agente?"
+  ],
+  "resultado_licao": "O Tribunal de Pequenas Causas de British Columbia (Canadá) julgou em fev/2024 que a Air Canada é responsável pela informação incorreta dada por seu chatbot sobre tarifas de luto, condenando a empresa a indenizar o passageiro. Tornou-se referência jurídica internacional sobre responsabilidade de empresas por respostas de IA generativa.",
+  "fontes": [
+    {
+      "titulo": "Moffatt v. Air Canada: A Misrepresentation by an AI Chatbot",
+      "url": "https://www.mccarthy.ca/en/insights/blogs/techlex/moffatt-v-air-canada-misrepresentation-ai-chatbot"
+    },
+    {
+      "titulo": "Air Canada found liable for chatbot's bad advice on bereavement rates — CBC News",
+      "url": "https://www.cbc.ca/news/canada/british-columbia/air-canada-chatbot-lawsuit-1.7116416"
+    }
+  ]
+}

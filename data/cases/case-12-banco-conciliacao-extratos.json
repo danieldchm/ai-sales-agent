@@ -1,0 +1,30 @@
+{
+  "id": "case-12-banco-conciliacao-extratos",
+  "titulo": "[Cenário composto] Banco de médio porte pede 'assistente de IA' para o time de conciliação, mas o gargalo é RPA",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Bancos (padrão comum a bancos de médio porte no Brasil)",
+  "porte_prospect": "Média",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "O time de operações/backoffice pede um 'agente de IA' para ajudar a conciliar lançamentos entre o extrato bancário, o ERP interno e o sistema de meios de pagamento, hoje feito manualmente em planilhas.",
+  "classificacao_correta": "RPA",
+  "sinais_diagnostico": [
+    "As três fontes de dados (extrato, ERP, adquirente) têm formato estruturado e relativamente estável — não há texto livre nem ambiguidade a interpretar.",
+    "A 'decisão' de conciliar ou não um lançamento segue regras claras (valor, data, identificador de transação batem ou não batem).",
+    "O time descreve o problema como 'demora e erro de digitação', não como 'não sabemos interpretar o dado' — sinal de que falta automação de processo, não inteligência."
+  ],
+  "abordagem_recomendada": "RPA de conciliação automática (matching por regras + fallback para revisão humana dos casos que não batem), sem necessidade de LLM. GenAI pode entrar depois, isolada, apenas para explicar em linguagem natural por que um lançamento específico não conciliou.",
+  "perguntas_discovery_chave": [
+    "Os três sistemas envolvidos têm um identificador comum de transação, ou a conciliação depende de interpretação humana?",
+    "Quantos lançamentos por mês não conciliam automaticamente hoje, e por quê?",
+    "O time já tentou resolver isso com regras/planilha, e onde especificamente essa abordagem quebrou?"
+  ],
+  "resultado_licao": "Padrão de mercado (Gartner): RPA é a escolha correta quando o processo é repetitivo, baseado em regras, com dados estruturados e sem necessidade de julgamento — exatamente o perfil deste cenário. Rotular como 'projeto de IA' aqui infla custo e prazo sem ganho adicional de qualidade.",
+  "fontes": [
+    {
+      "titulo": "Compare AI agents vs. RPA: Key differences and overlap — TechTarget",
+      "url": "https://www.techtarget.com/searchenterpriseai/tip/Compare-AI-agents-vs-RPA-Key-differences-and-overlap"
+    }
+  ],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica — baseado em padrão de mercado documentado por Gartner/TechTarget sobre quando usar RPA."
+}

@@ -1,0 +1,34 @@
+{
+  "id": "case-07-jpmorgan-coin-contratos",
+  "titulo": "JPMorgan COIN — extração automatizada de cláusulas de contratos de empréstimo (RPA + ML de documentos)",
+  "tipo_case": "real",
+  "empresa": "JPMorgan Chase",
+  "industria": "Bancos / Serviços Financeiros",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA)",
+  "sintoma_demanda_inicial": "Reduzir as ~360.000 horas/ano que advogados e analistas de crédito gastavam interpretando manualmente contratos de empréstimo comercial para extrair cláusulas-chave.",
+  "classificacao_correta": "RPA",
+  "nuance": "Usa NLP/Machine Learning para reconhecer cláusulas em documentos com estrutura relativamente previsível (contratos de empréstimo padronizados) — é automação inteligente de extração de dados de documentos (RPA avançado com IA embarcada), não geração de texto nem raciocínio aberto como um LLM faria.",
+  "sinais_diagnostico": [
+    "O volume de documentos segue um formato relativamente padronizado (contratos de empréstimo comercial), o que permite treinar um extrator de cláusulas específico em vez de depender de um LLM generalista.",
+    "O objetivo é extrair informação já existente no documento (cláusulas, prazos, condições), não gerar conteúdo novo nem responder perguntas abertas.",
+    "Ganho mensurável e determinístico: tempo por contrato cai de horas para segundos, com redução de ~80% em erros de compliance."
+  ],
+  "abordagem_recomendada": "Pipeline de RPA + extração de documentos (OCR/NLP especializado) treinado no formato específico de contrato do cliente; GenAI pode entrar como camada complementar apenas para os poucos casos de contratos fora do padrão que exigem interpretação mais flexível.",
+  "perguntas_discovery_chave": [
+    "Que % dos documentos segue um template/formato relativamente padronizado, e qual % foge totalmente do padrão?",
+    "O objetivo final é extrair dados já existentes no documento, ou também redigir/sugerir texto novo?",
+    "Qual o SLA de acurácia mínima exigido pelo time jurídico/compliance para confiar na extração automatizada?"
+  ],
+  "resultado_licao": "Em produção desde 2017, o COIN processa mais de 12.000 contratos por ano, elimina cerca de 360.000 horas anuais de trabalho manual e reduziu erros relacionados a compliance em aproximadamente 80% — um dos casos mais citados de ROI em automação de documentos no setor financeiro.",
+  "fontes": [
+    {
+      "titulo": "JPMorgan Software Does in Seconds What Took Lawyers 360,000 Hours — Bloomberg",
+      "url": "https://www.bloomberg.com/news/articles/2017-02-28/jpmorgan-marshals-an-army-of-developers-to-automate-high-finance"
+    },
+    {
+      "titulo": "JPMorgan Chase uses tech to save 360,000 hours of annual work — ABA Journal",
+      "url": "https://www.abajournal.com/news/article/jpmorgan_chase_uses_tech_to_save_360000_hours_of_annual_work_by_lawyers_and"
+    }
+  ]
+}

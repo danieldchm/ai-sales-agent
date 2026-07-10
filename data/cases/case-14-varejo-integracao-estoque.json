@@ -1,0 +1,25 @@
+{
+  "id": "case-14-varejo-integracao-estoque",
+  "titulo": "[Cenário composto] Varejista pede 'agente de IA para gestão de estoque', mas o problema é integração de sistemas",
+  "tipo_case": "composto",
+  "empresa": null,
+  "industria": "Varejo / E-commerce",
+  "porte_prospect": "Média",
+  "regiao": "Brasil",
+  "sintoma_demanda_inicial": "Evitar ruptura de estoque e venda de produto indisponível no site, atualizando preço e quantidade disponível entre o ERP e a plataforma de e-commerce.",
+  "classificacao_correta": "RPA",
+  "sinais_diagnostico": [
+    "O problema relatado é atraso/latência na sincronização entre dois sistemas com APIs já existentes — integração de sistemas, não análise ou decisão.",
+    "Não há necessidade de prever nada (isso seria BI/forecasting) nem de interpretar linguagem — é replicar um dado de um sistema para o outro corretamente e a tempo.",
+    "O prospect usou o termo 'IA' porque já ouviu falar do conceito, mas ao descrever a dor, não menciona nenhuma decisão que exija julgamento."
+  ],
+  "abordagem_recomendada": "Automação de integração (RPA ou, idealmente, integração via API/middleware) com sincronização em tempo real ou near-real-time — sem qualquer componente de IA/ML necessário para resolver a dor descrita.",
+  "perguntas_discovery_chave": [
+    "Qual o intervalo de tempo hoje entre uma mudança no ERP e sua reflexão no site, e qual seria o aceitável?",
+    "Existe hoje algum tipo de decisão sendo tomada neste fluxo (ex.: priorizar canal em caso de estoque baixo), ou é 100% replicação de dado?",
+    "Por que o termo 'IA' foi usado para descrever este projeto?"
+  ],
+  "resultado_licao": "Nem toda demanda de automação de integração precisa (ou se beneficia) de IA — este é o exemplo mais simples e mais comum de 'inflação de rótulo' que o discovery precisa neutralizar rapidamente, redirecionando o prospect para uma solução mais barata e mais rápida de entregar.",
+  "fontes": [],
+  "disclaimer": "Cenário ilustrativo/composto, não corresponde a uma empresa real específica — padrão recorrente em discovery de e-commerce."
+}

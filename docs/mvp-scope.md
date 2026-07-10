@@ -112,6 +112,13 @@ Além de Ollama, N8N e Open WebUI (já disponíveis), o MVP agora depende de sub
 - **SearXNG** (busca self-hosted)
 - **Qdrant** (vector store do RAG)
 
+**Status (2026-07-10):** os três serviços foram subidos via `docker-compose.yml` e verificados
+(N8N, SearXNG com formato JSON habilitado, Qdrant com a collection `ai_sdr_cases` criada).
+A base de **20 cases** (ver [`data/cases/`](../data/cases/README.md)) foi pesquisada, curada,
+embedada com `embeddinggemma` e indexada no Qdrant via
+[`scripts/ingest_cases.py`](../scripts/ingest_cases.py) — recuperação semântica testada e
+funcionando.
+
 ## 4. Métricas — tornar mensuráveis
 
 | Indicador | Como medir no MVP | Baseline | Meta |
@@ -140,9 +147,10 @@ Além de Ollama, N8N e Open WebUI (já disponíveis), o MVP agora depende de sub
 
 ## 6. Próximos passos
 
-- [ ] Fechar as 3 decisões de implementação em aberto (§3)
+- [x] Fechar as 3 decisões de implementação em aberto (§3)
 - [ ] Validar este recorte com o professor/orientador
-- [ ] Montar base de cases curada (`data/cases/`) e escolher o vector store do N8N
+- [x] Subir N8N + SearXNG + Qdrant via docker-compose
+- [x] Montar base de cases curada (`data/cases/`, 20 itens) e indexar no Qdrant
 - [ ] Definir schema JSON da saída do LLM (perfil, classificação, maturidade, recomendação, perguntas)
 - [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação
 - [ ] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta no Open WebUI

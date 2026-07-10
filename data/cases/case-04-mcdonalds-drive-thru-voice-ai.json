@@ -1,0 +1,34 @@
+{
+  "id": "case-04-mcdonalds-drive-thru-voice-ai",
+  "titulo": "McDonald's — IA de voz no drive-thru foi descontinuada após erros recorrentes de pedido",
+  "tipo_case": "real",
+  "empresa": "McDonald's (parceria com IBM)",
+  "industria": "Varejo / Food Service",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA)",
+  "sintoma_demanda_inicial": "Automatizar a tomada de pedidos por voz no drive-thru para reduzir tempo de espera e custo de atendimento, eliminando o atendente humano na etapa de pedido.",
+  "classificacao_correta": "GenAI real",
+  "nuance": "A tecnologia (reconhecimento de voz + IA para interpretar pedidos) era GenAI/IA conversacional real, mas foi implantada antes de estar madura para o ambiente real (ruído de fundo, sotaques, pedidos sobrepostos), o que é um problema de maturidade/prontidão, não de categoria errada.",
+  "sinais_diagnostico": [
+    "Ambiente de captura de áudio extremamente ruidoso e variável (carros, som ambiente, múltiplos falantes) — exige avaliação de robustez do modelo em condições reais antes do rollout, não só em ambiente controlado.",
+    "Task de alto volume e baixa tolerância a erro (cada pedido errado é uma reclamação/prejuízo imediato e visível ao cliente).",
+    "Relatos públicos e virais de erros (chá doce em excesso, bacon em sorvete) — sinal de que não houve piloto suficiente antes da expansão para 100+ lojas."
+  ],
+  "abordagem_recomendada": "Pilotar em poucas unidades com monitoramento humano em paralelo (shadow mode) por tempo suficiente para medir taxa de erro real antes de expandir; definir um limiar mínimo de acurácia por sotaque/condição de ruído antes do go-live.",
+  "perguntas_discovery_chave": [
+    "Qual é a taxa de erro aceitável para este processo, e como ela será medida durante um piloto controlado?",
+    "O ambiente de captura de dados em produção é comparável ao ambiente de teste/demo que foi validado?",
+    "Existe um plano de rollback rápido caso a taxa de erro em produção supere o esperado?"
+  ],
+  "resultado_licao": "Em jun/2024, o McDonald's encerrou sua parceria de dois anos com a IBM para IA de pedidos por voz no drive-thru, após vídeos virais mostrando erros de pedido em mais de 100 lojas nos EUA — mas a empresa afirmou que continuará buscando outra solução de voice ordering, indicando que o problema foi de execução/maturidade, não da tese de usar IA no drive-thru.",
+  "fontes": [
+    {
+      "titulo": "McDonald's to end AI drive-thru test with IBM — CNBC",
+      "url": "https://www.cnbc.com/2024/06/17/mcdonalds-to-end-ibm-ai-drive-thru-test.html"
+    },
+    {
+      "titulo": "McDonald's is ending its drive-thru AI test",
+      "url": "https://www.restaurantbusinessonline.com/technology/mcdonalds-ending-its-drive-thru-ai-test"
+    }
+  ]
+}

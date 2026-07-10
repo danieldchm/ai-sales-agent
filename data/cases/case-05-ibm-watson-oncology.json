@@ -1,0 +1,34 @@
+{
+  "id": "case-05-ibm-watson-oncology",
+  "titulo": "IBM Watson for Oncology — IA de apoio a decisão clínica prometeu demais e foi treinada com dados sintéticos",
+  "tipo_case": "real",
+  "empresa": "IBM Watson Health / Memorial Sloan Kettering",
+  "industria": "Saúde",
+  "porte_prospect": "Grande",
+  "regiao": "Global (EUA, com venda internacional)",
+  "sintoma_demanda_inicial": "Um sistema de IA que analisasse literatura médica e histórico do paciente para recomendar o tratamento oncológico ideal, reduzindo variabilidade e erro humano na decisão clínica.",
+  "classificacao_correta": "GenAI real",
+  "nuance": "É anterior à era dos LLMs modernos, mas tem a mesma promessa central do que se vende hoje como 'IA generativa/agente para decisão clínica': sintetizar informação não estruturada (literatura + prontuário) para sugerir uma ação. A lição sobre qualidade e representatividade dos dados de treino é diretamente aplicável a qualquer projeto de GenAI real.",
+  "sinais_diagnostico": [
+    "O sistema foi treinado majoritariamente com casos 'sintéticos' (hipotéticos) elaborados por poucos médicos de uma única instituição, não com dados reais e diversos de pacientes — sinal clássico de dado de treino não representativo.",
+    "Decisão de altíssimo risco (tratamento oncológico) sendo apoiada por um sistema sem validação clínica robusta e publicada antes da comercialização em larga escala.",
+    "Documentos internos mostraram exemplos de recomendações 'inseguras e incorretas' identificados por especialistas e clientes já em produção."
+  ],
+  "abordagem_recomendada": "Em domínios de alto risco (saúde, jurídico, financeiro regulatório), validar a solução com dados reais e revisão especializada antes de qualquer rollout comercial, e ser extremamente transparente sobre a base de treinamento/conhecimento usada — nunca comercializar como 'pronto' o que ainda é piloto de pesquisa.",
+  "perguntas_discovery_chave": [
+    "A base de conhecimento/treino usada representa a diversidade real de casos que o cliente final vai enfrentar?",
+    "Existe uma trilha de validação clínica/especializada antes do go-live, e ela foi publicada ou é auditável?",
+    "Qual o processo de correção quando um especialista identifica uma recomendação incorreta em produção?"
+  ],
+  "resultado_licao": "Documentos internos da IBM revelados pelo STAT News em 2018 mostraram que o Watson for Oncology gerou recomendações de tratamento 'inseguras e incorretas' em múltiplos casos documentados; o projeto piloto com o MD Anderson Cancer Center foi interrompido em 2016 após consumir ~US$62 milhões sem produzir um sistema clinicamente utilizável.",
+  "fontes": [
+    {
+      "titulo": "IBM's Watson supercomputer recommended 'unsafe and incorrect' cancer treatments — STAT",
+      "url": "https://www.statnews.com/2018/07/25/ibm-watson-recommended-unsafe-incorrect-treatments/"
+    },
+    {
+      "titulo": "Case Study 20: The $4 Billion AI Failure of IBM Watson for Oncology",
+      "url": "https://www.henricodolfing.ch/en/case-study-20-the-4-billion-ai-failure-of-ibm-watson-for-oncology/"
+    }
+  ]
+}
