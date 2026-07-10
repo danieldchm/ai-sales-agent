@@ -68,13 +68,15 @@ depender do `format` da API. Funcionou de forma consistente nos testes.
   resolver, o node está configurado para não derrubar o workflow (`neverError`), mas o perfil de
   pesquisa ficará mais pobre nesse caso.
 
-## Function/Pipe do Open WebUI — único passo que ainda depende de você
+## Function/Pipe do Open WebUI
 
-Não consegui instalar isso automaticamente: seu Open WebUI já tem uma conta de admin configurada
-(cadastro está desabilitado), e eu não tenho — nem deveria ter — essa senha. É rápido:
+**Já instalada e ativada** via API (`POST /api/v1/functions/create` + `.../toggle`), a pedido do
+usuário após reset de senha administrativa. Aparece no seletor de modelo do chat como
+**"AI SDR - Qualificação de Leads"** (id `ai_sdr_qualificacao`). Testado ponta a ponta pelo
+próprio endpoint de chat do Open WebUI (`/api/chat/completions`), não só pelo webhook direto do
+N8N.
 
-1. Abra o Open WebUI → **Admin Panel → Functions → New Function**.
-2. Cole o conteúdo de [`openwebui/pipe_ai_sdr.py`](../../openwebui/pipe_ai_sdr.py).
-3. Salve e **habilite** a function.
-4. No chat, selecione o modelo **"AI SDR - Qualificação de Leads"** e envie um domínio
-   (ex.: `itau.com.br`).
+Para usar: abra o Open WebUI, selecione o modelo **"AI SDR - Qualificação de Leads"** no chat e
+envie um domínio (ex.: `itau.com.br`). Código-fonte em
+[`openwebui/pipe_ai_sdr.py`](../../openwebui/pipe_ai_sdr.py) caso precise editar (ex.: trocar a
+URL do webhook via Valves, se o N8N mudar de porta/host).

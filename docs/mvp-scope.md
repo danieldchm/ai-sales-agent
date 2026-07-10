@@ -154,5 +154,5 @@ funcionando.
 - [x] Definir schema JSON da saída do LLM (ver [`docs/llm-output-schema.md`](./llm-output-schema.md))
 - [x] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta (ver [`n8n/workflows/`](../n8n/workflows/README.md))
 - [x] Setup inicial do N8N, ativação do workflow e **teste ponta a ponta com sucesso** (domínio real `itau.com.br`, ~3min20s de resposta)
-- [ ] **Pendente manual:** instalar a Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) e testar no chat — não automatizável (Open WebUI já tem admin configurado, sem acesso à senha)
+- [x] Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) instalada e ativada via API, testada via `/api/chat/completions`
 - [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação

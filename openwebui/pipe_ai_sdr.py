@@ -15,8 +15,8 @@ class Pipe:
             description="URL do webhook do workflow 'AI SDR - Qualificação de Leads' no N8N.",
         )
         timeout_seconds: int = Field(
-            default=180,
-            description="Timeout (segundos) para aguardar o workflow do N8N responder.",
+            default=630,
+            description="Timeout (segundos) para aguardar o workflow do N8N responder. Deve ser maior que o timeout do node de classificacao no N8N (600s) -- geracao local do Gemma costuma levar 3-4 minutos.",
         )
 
     def __init__(self):
