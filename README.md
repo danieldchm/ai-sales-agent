@@ -29,12 +29,13 @@ O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 
 ## Stack
 
-| Camada        | Ferramenta                                     |
-|---------------|-------------------------------------------------|
-| Orquestração  | N8N (workflow: research → RAG → LLM → resposta) |
-| LLM           | Ollama, modelo Gemma **local**                   |
-| Interface     | Open WebUI (já disponível em container)          |
-| RAG           | Vector store sobre base de cases (via N8N)       |
+| Camada        | Ferramenta                                              |
+|---------------|----------------------------------------------------------|
+| Orquestração  | N8N (workflow: research → RAG → LLM → resposta)         |
+| LLM           | Ollama, modelo `gemma4:12b-mlx` **local**               |
+| Interface     | Open WebUI (já disponível em container) via Pipe/Function|
+| Research      | SearXNG self-hosted + scraping do site do prospect      |
+| RAG           | Qdrant (vector store da base de cases), via node do N8N |
 
 Stack 100% local — nenhum dado do prospect é enviado a APIs externas de terceiros.
 
@@ -42,9 +43,10 @@ Stack 100% local — nenhum dado do prospect é enviado a APIs externas de terce
 
 ## Como rodar (a definir)
 
-Pressupõe Ollama, N8N e Open WebUI já disponíveis localmente. Instruções detalhadas (workflow do
-N8N, configuração do webhook/pipe e do modelo Gemma no Ollama) serão adicionadas conforme o MVP
-for implementado — ver decisões em aberto em [`docs/mvp-scope.md`](docs/mvp-scope.md#decisões-de-implementação-em-aberto).
+Pressupõe Ollama e Open WebUI já disponíveis localmente. Ainda faltam subir **N8N**, **SearXNG**
+e **Qdrant**. Instruções detalhadas (docker-compose desses serviços, workflow do N8N e a
+Pipe/Function do Open WebUI) serão adicionadas conforme o MVP for implementado — ver
+[`docs/mvp-scope.md`](docs/mvp-scope.md#3-arquitetura-mínima-proposta).
 
 ## Estrutura
 

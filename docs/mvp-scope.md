@@ -85,30 +85,32 @@ multiusuário/autenticação.
 ```
 
 - **UI:** Open WebUI (já disponível em container local) — interface de chat com o vendedor.
-- **Orquestração:** N8N — recebe o domínio (via webhook chamado por uma function/pipe do Open
-  WebUI, ou por um workflow acionado manualmente), executa scraping/research, consulta o RAG e
-  chama o LLM, formata e devolve a resposta.
-- **LLM:** Ollama rodando modelo **Gemma local** — sem chamadas a API externa; saída em JSON
-  estruturado (schema fixo) sempre que possível.
-- **RAG:** vector store sobre a base de cases da consultoria, consultado a partir de um node do
-  próprio N8N.
-- **Research/enriquecimento:** nodes de HTTP request + parsing de HTML no N8N para coletar
-  conteúdo público do domínio informado (e, dependendo da decisão de escopo, busca externa —
-  ver perguntas em aberto abaixo).
+- **Orquestração:** N8N — recebe o domínio via webhook, executa scraping/research, consulta o
+  RAG e chama o LLM, formata e devolve a resposta.
+- **LLM:** Ollama rodando **`gemma4:12b-mlx`** (build otimizado para Apple Silicon) — sem
+  chamadas a API externa; saída em JSON estruturado (schema fixo) sempre que possível.
+- **RAG:** **Qdrant** como vector store sobre a base de cases da consultoria, consultado via
+  node nativo do N8N.
+- **Research/enriquecimento:** nodes de HTTP request + parsing de HTML no N8N para o site do
+  domínio informado, combinados com consultas a uma instância local de **SearXNG** (busca de
+  notícias, vagas, menções públicas) — sem custo por chamada e sem API key de terceiros.
+- **Gatilho UI → N8N:** uma **Function/Pipe do Open WebUI** recebe a mensagem do vendedor
+  (contendo o domínio), chama o webhook do N8N de forma síncrona e exibe a resposta no chat.
 
-### Decisões de implementação em aberto
+### Decisões de implementação (fechadas em 2026-07-10)
 
-Estas ainda não estão fechadas e afetam diretamente quais nodes/credenciais o workflow do N8N
-vai precisar:
+| Decisão | Escolha |
+|---|---|
+| Fonte de dados da pesquisa | Scraping do site + **SearXNG** self-hosted |
+| Gatilho Open WebUI → N8N | **Pipe/Function** do Open WebUI chamando webhook do N8N |
+| Vector store do RAG | **Qdrant** |
+| Modelo LLM (Ollama) | **`gemma4:12b-mlx`** |
 
-1. **Fonte de dados da pesquisa:** apenas scraping do site institucional do prospect, ou também
-   busca externa (notícias, vagas, LinkedIn) via API de busca (paga) ou motor self-hosted
-   (ex.: SearXNG)?
-2. **Gatilho Open WebUI → N8N:** uma *Function/Pipe* do Open WebUI chamando um webhook do N8N de
-   forma síncrona, ou o N8N exposto como endpoint compatível com a API da OpenAI e registrado como
-   "model" dentro do Open WebUI?
-3. **Vector store do RAG:** já existe algo disponível localmente (Qdrant, Postgres+pgvector) ou
-   parte do zero — nesse caso, qual node nativo do N8N usar?
+### Serviços adicionais que este pivot introduz
+
+Além de Ollama, N8N e Open WebUI (já disponíveis), o MVP agora depende de subir localmente:
+- **SearXNG** (busca self-hosted)
+- **Qdrant** (vector store do RAG)
 
 ## 4. Métricas — tornar mensuráveis
 
