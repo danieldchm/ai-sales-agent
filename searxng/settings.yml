@@ -1,0 +1,16 @@
+use_default_settings: true
+
+general:
+  instance_name: "ai-sdr-search"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: "46768d7ec3f789a070f040f18dbb3f563b7de40df36801ca38de8873b4f49282"
+  limiter: false
+  image_proxy: false

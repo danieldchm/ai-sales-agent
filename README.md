@@ -41,21 +41,45 @@ Stack 100% local — nenhum dado do prospect é enviado a APIs externas de terce
 
 **Fora do MVP (Fase 2):** transcrição de calls (Whisper), integração com CRM.
 
-## Como rodar (a definir)
+## Como rodar
 
-Pressupõe Ollama e Open WebUI já disponíveis localmente. Ainda faltam subir **N8N**, **SearXNG**
-e **Qdrant**. Instruções detalhadas (docker-compose desses serviços, workflow do N8N e a
-Pipe/Function do Open WebUI) serão adicionadas conforme o MVP for implementado — ver
-[`docs/mvp-scope.md`](docs/mvp-scope.md#3-arquitetura-mínima-proposta).
+Pressupõe Ollama e Open WebUI já disponíveis localmente (fora deste compose). Sobe **N8N**,
+**SearXNG** e **Qdrant**:
+
+```bash
+docker compose up -d
+```
+
+| Serviço | URL (do host) | URL (de dentro do N8N) |
+|---|---|---|
+| N8N        | http://localhost:5678 | — |
+| SearXNG    | http://localhost:8080 | `http://searxng:8080` |
+| Qdrant     | http://localhost:6333 | `http://qdrant:6333`  |
+| Ollama     | http://localhost:11434 | `http://host.docker.internal:11434` |
+
+O Open WebUI (container já existente, fora deste compose) deve chamar o webhook do N8N via
+`http://host.docker.internal:5678/webhook/ai-sdr`.
+
+Criar a collection do Qdrant para a base de cases (768 dimensões, compatível com o modelo de
+embedding `embeddinggemma` do Ollama):
+
+```bash
+curl -X PUT "http://localhost:6333/collections/ai_sdr_cases" \
+  -H "Content-Type: application/json" \
+  -d '{"vectors": {"size": 768, "distance": "Cosine"}}'
+```
 
 ## Estrutura
 
 ```
 .
 ├── README.md
-├── .env.example        # variáveis de ambiente (sem segredos)
+├── docker-compose.yml   # N8N + SearXNG + Qdrant
+├── .env.example         # variáveis de ambiente (sem segredos)
 ├── .gitignore
+├── searxng/
+│   └── settings.yml     # habilita formato JSON (consumido pelo N8N)
 └── docs/
-    ├── genai-canvas.md # canvas original (rascunho)
-    └── mvp-scope.md    # revisão + escopo do MVP
+    ├── genai-canvas.md  # canvas original (rascunho)
+    └── mvp-scope.md     # revisão + escopo do MVP
 ```

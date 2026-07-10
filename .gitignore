@@ -37,6 +37,9 @@ chroma/
 vector_store/
 *.faiss
 
+# === SearXNG (arquivos gerados pelo container, mantemos settings.yml versionado) ===
+searxng/uwsgi.ini
+
 # === Transcrições de áudio (Whisper) ===
 audio/
 transcripts/

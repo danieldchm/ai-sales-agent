@@ -1,0 +1,63 @@
+name: ai-sdr
+
+# Sobe N8N + SearXNG + Qdrant para o MVP do AI SDR.
+# Pressupoe Ollama e Open WebUI ja rodando fora deste compose (ver README.md).
+#
+# Hostnames a usar DENTRO dos workflows do N8N (rede interna deste compose):
+#   - SearXNG:  http://searxng:8080
+#   - Qdrant:   http://qdrant:6333
+#   - Ollama:   http://host.docker.internal:11434  (roda no host, fora do compose)
+#
+# Hostnames a usar do HOST (curl, scripts locais, .env.example):
+#   - N8N:      http://localhost:5678
+#   - SearXNG:  http://localhost:8080
+#   - Qdrant:   http://localhost:6333
+#
+# O Open WebUI (container ja existente, fora deste compose) deve chamar o
+# webhook do N8N via: http://host.docker.internal:5678/webhook/ai-sdr
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ai-sdr-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - TZ=America/Sao_Paulo
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+    volumes:
+      - n8n_data:/home/node/.n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: ai-sdr-searxng
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - INSTANCE_NAME=ai-sdr-search
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai-sdr-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  n8n_data:
+  qdrant_data:
