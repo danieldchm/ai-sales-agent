@@ -3,6 +3,22 @@
 > Documento derivado da revisão do [GenAI Canvas](./genai-canvas.md).
 > Objetivo: transformar o canvas em um escopo **enxuto e demonstrável** para a entrega do MBA.
 
+## 0. Changelog de escopo
+
+- **v0 (canvas original):** entrada = texto do lead colado pelo SDR; stack proposta =
+  Streamlit + Gemini API + Chroma.
+- **v1 (atual):** pivot de stack e de entrada — decisão do autor do projeto.
+  - **Entrada agora é o domínio do prospect** (ex.: `itau.com.br`). O próprio agente faz a
+    **pesquisa/enriquecimento** sobre a empresa a partir do domínio, em vez de depender de o SDR
+    já ter formulário/e-mail/briefing em mãos. Isso amplia o escopo técnico (adiciona uma etapa
+    de research automatizado) mas aumenta o valor: o agente funciona com o mínimo de informação
+    que o vendedor normalmente já tem (o site do prospect).
+  - **Stack 100% local:** N8N (orquestração) + Ollama rodando modelo Gemma local (LLM) +
+    Open WebUI (interface de chat, já disponível em container). Ver §3.
+  - Isso **resolve diretamente** o risco de segurança de dados apontado no canvas original
+    (nota 5): como o LLM roda localmente via Ollama, nenhum dado do prospect é enviado a uma
+    API externa de terceiros.
+
 ## 1. Revisão crítica do canvas
 
 O canvas está forte na **motivação de negócio** (ROI, relevância tática e estratégica = 10) e o
@@ -18,66 +34,113 @@ MVP — são as notas médias (5) em **disponibilidade/qualidade de dados**, **a
 | Transcrição de calls (Whisper) | Aumenta escopo e custo do MVP | **Fora do MVP** → Fase 2 |
 | Integração com CRM | Já marcada como "futura" | **Fora do MVP** → Fase 2 (entrada por texto colado) |
 | Métricas de sucesso | Sem baseline nem meta numérica | Definir baseline + meta (ver §4) |
-| Segurança dos dados (nota 5) | Lead contém dados de prospect/PII enviados à API | Anonimização + flag de não-treinamento + política de dados (ver §5) |
+| Segurança dos dados (nota 5) | Lead contém dados de prospect/PII enviados à API | **Resolvido pelo pivot de stack**: LLM local (Ollama) — nenhum dado sai do ambiente (ver §0 e §5) |
 
 ## 2. Escopo do MVP (o que entra)
 
-**Entrada:** texto do lead colado pelo SDR (formulário + e-mail + briefing).
+**Entrada:** domínio do prospect (ex.: `itau.com.br`), informado pelo vendedor no chat (Open WebUI).
 
-**Saída estruturada (com justificativa):**
-1. **Classificação** da demanda: `GenAI real` | `RPA` | `BI` | `automação clássica`
-2. **Nível de maturidade em IA** do prospect (ex.: inicial / em desenvolvimento / avançado)
-3. **3–5 perguntas de discovery** sugeridas
-4. **Cases relevantes** recuperados via RAG (com fonte)
+**Pipeline (com justificativa em cada etapa):**
+1. **Research/enriquecimento** a partir do domínio — coleta informações públicas sobre a empresa
+   (site institucional, notícias, vagas de emprego, sinais de maturidade digital/tech stack).
+2. **RAG** sobre a base de cases da consultoria — recupera cases/soluções similares já entregues.
+3. **Classificação** da demanda mais provável: `GenAI real` | `RPA` | `BI` | `automação clássica`.
+4. **Nível de maturidade em IA** do prospect (ex.: inicial / em desenvolvimento / avançado).
+5. **Direcionamento de estratégia para o vendedor**: manter a abordagem que o prospect já trouxe
+   vs. propor um *shift* de estratégia; e se é necessário um **discovery mais profundo** antes de
+   avançar.
+6. **3–5 perguntas de discovery** sugeridas, adaptadas ao que já foi descoberto na pesquisa.
 
-**Fora do MVP (Fase 2+):** Whisper, integração CRM, scoring histórico, multiusuário/autenticação.
+**Saída:** resumo estruturado (perfil da empresa + classificação + maturidade + recomendação de
+direcionamento + perguntas + cases relevantes), entregue como mensagem no chat do Open WebUI.
+
+**Fora do MVP (Fase 2+):** Whisper (transcrição de calls), integração com CRM, scoring histórico,
+multiusuário/autenticação.
 
 ## 3. Arquitetura mínima proposta
 
 ```
-[SDR cola o lead]
-        │
-        ▼
-  ┌─────────────┐     ┌──────────────────────┐
-  │  App (UI)   │────▶│  Orquestração (Python)│
-  │  Streamlit  │     │  - prompt de classif. │
-  └─────────────┘     │  - RAG retrieval      │
-        ▲             └───────┬──────────┬─────┘
-        │                     │          │
-        │             ┌───────▼───┐  ┌───▼─────────┐
-        │             │ Gemini API│  │ Vector DB   │
-        └─────────────│  (LLM)    │  │ (Chroma)    │
-          saída        └───────────┘  │ base cases  │
-          estruturada                 └─────────────┘
+[Vendedor informa o domínio no chat — Open WebUI]
+                    │
+                    ▼
+        ┌───────────────────────┐
+        │   N8N (orquestração)  │
+        │  workflow disparado   │
+        │  via webhook          │
+        └──────────┬────────────┘
+                    │
+     ┌──────────────┼───────────────────┐
+     ▼              ▼                   ▼
+┌─────────┐  ┌───────────────┐   ┌──────────────┐
+│ Research │  │  RAG retrieval │   │ Ollama (Gemma)│
+│ (scraping│  │  base de cases │   │  LLM local    │
+│ do site, │  │  (vector store)│   │  classificação│
+│ notícias,│  └───────┬────────┘   │  + recomendação│
+│  vagas)  │          │            └──────┬────────┘
+└────┬─────┘          │                   │
+     └──────────► compõe prompt ◄─────────┘
+                       │
+                       ▼
+        Resposta estruturada → Open WebUI (chat)
 ```
 
-- **LLM:** Gemini via API, saída em JSON estruturado (schema fixo)
-- **RAG:** Chroma/FAISS local sobre base de cases curada
-- **UI:** Streamlit (rápido de demonstrar em banca)
+- **UI:** Open WebUI (já disponível em container local) — interface de chat com o vendedor.
+- **Orquestração:** N8N — recebe o domínio (via webhook chamado por uma function/pipe do Open
+  WebUI, ou por um workflow acionado manualmente), executa scraping/research, consulta o RAG e
+  chama o LLM, formata e devolve a resposta.
+- **LLM:** Ollama rodando modelo **Gemma local** — sem chamadas a API externa; saída em JSON
+  estruturado (schema fixo) sempre que possível.
+- **RAG:** vector store sobre a base de cases da consultoria, consultado a partir de um node do
+  próprio N8N.
+- **Research/enriquecimento:** nodes de HTTP request + parsing de HTML no N8N para coletar
+  conteúdo público do domínio informado (e, dependendo da decisão de escopo, busca externa —
+  ver perguntas em aberto abaixo).
+
+### Decisões de implementação em aberto
+
+Estas ainda não estão fechadas e afetam diretamente quais nodes/credenciais o workflow do N8N
+vai precisar:
+
+1. **Fonte de dados da pesquisa:** apenas scraping do site institucional do prospect, ou também
+   busca externa (notícias, vagas, LinkedIn) via API de busca (paga) ou motor self-hosted
+   (ex.: SearXNG)?
+2. **Gatilho Open WebUI → N8N:** uma *Function/Pipe* do Open WebUI chamando um webhook do N8N de
+   forma síncrona, ou o N8N exposto como endpoint compatível com a API da OpenAI e registrado como
+   "model" dentro do Open WebUI?
+3. **Vector store do RAG:** já existe algo disponível localmente (Qdrant, Postgres+pgvector) ou
+   parte do zero — nesse caso, qual node nativo do N8N usar?
 
 ## 4. Métricas — tornar mensuráveis
 
 | Indicador | Como medir no MVP | Baseline | Meta |
 |---|---|---|---|
-| Tempo de qualificação/lead | Cronometrar SDR com vs. sem o agente | _(coletar)_ | −X% |
-| Acurácia da classificação | Comparar contra rótulo de consultor sênior em um **conjunto-ouro** (~30 leads) | — | ≥ Y% |
-| Qualidade da abordagem sugerida | Avaliação 1–5 por consultor sênior | — | ≥ 4 |
+| Tempo de qualificação/lead | Cronometrar vendedor com vs. sem o agente | _(coletar)_ | −X% |
+| Acurácia da classificação | Comparar contra rótulo de consultor sênior em um **conjunto-ouro** (~30 domínios/prospects) | — | ≥ Y% |
+| Qualidade/relevância da pesquisa | O perfil da empresa gerado bate com o que um consultor levantaria manualmente? (1–5) | — | ≥ 4 |
+| Qualidade do direcionamento sugerido | Avaliação 1–5 do vendedor: a recomendação (manter estratégia vs. shift) ajudou de fato? | — | ≥ 4 |
 | Horas de pré-venda economizadas | Extrapolar do tempo/lead | — | — |
 
-> O **conjunto-ouro de ~30 leads rotulados** é também o principal artefato de avaliação
+> O **conjunto-ouro de ~30 domínios de prospects rotulados** (classificação + maturidade
+> esperadas, validadas por consultor sênior) é também o principal artefato de avaliação
 > acadêmica do trabalho.
 
 ## 5. Governança & segurança (ângulo AI Leadership)
 
-- Dados de prospect são confidenciais/PII → **anonimizar** antes de enviar à API quando possível.
-- Usar configuração da API que **não usa os dados para treinamento**.
-- Registrar **disclaimer**: saída é sugestão, decisão final é humana (human-in-the-loop).
-- Documentar riscos: viés, alucinação, vazamento de dados.
+- **LLM 100% local (Ollama/Gemma):** nenhum dado do prospect ou do research é enviado a uma API
+  de terceiros — mitiga o risco de segurança de dados apontado no canvas original.
+- A etapa de **research/scraping** deve respeitar `robots.txt`, limites de taxa e coletar apenas
+  informação pública — não é reconhecimento invasivo nem coleta de dados pessoais sensíveis.
+- Registrar **disclaimer**: a saída é uma recomendação de direcionamento, a decisão final sobre
+  estratégia e discovery é do vendedor (**human-in-the-loop**).
+- Documentar riscos: viés e alucinação do modelo local (Gemma tende a ter menos capacidade que
+  modelos de fronteira — validar acurácia no conjunto-ouro antes de confiar cegamente), dados
+  desatualizados ou incompletos vindos do research automatizado.
 
 ## 6. Próximos passos
 
+- [ ] Fechar as 3 decisões de implementação em aberto (§3)
 - [ ] Validar este recorte com o professor/orientador
-- [ ] Montar base de cases curada (`data/cases/`)
-- [ ] Definir schema JSON da saída do LLM
-- [ ] Criar conjunto-ouro de leads rotulados para avaliação
-- [ ] Implementar pipeline: ingestão RAG → classificação → UI
+- [ ] Montar base de cases curada (`data/cases/`) e escolher o vector store do N8N
+- [ ] Definir schema JSON da saída do LLM (perfil, classificação, maturidade, recomendação, perguntas)
+- [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação
+- [ ] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta no Open WebUI
