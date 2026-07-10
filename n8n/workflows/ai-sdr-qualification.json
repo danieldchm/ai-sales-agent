@@ -3,7 +3,7 @@
   "name": "AI SDR - Qualificação de Leads",
   "nodes": [
     {
-      "id": "4b8bf473-8efa-4bfe-9559-15a94adcb604",
+      "id": "8b67115f-58da-4ae0-b613-3c70fd481a99",
       "name": "Webhook - Recebe Domínio",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -17,10 +17,10 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "webhookId": "8c44a6d4-6979-48f7-ac71-71d2c9662c68"
+      "webhookId": "a3bb7977-2867-45b6-b69a-fa18215c5db8"
     },
     {
-      "id": "428edd45-8771-464f-bc21-75380da0f569",
+      "id": "e163ba06-30b8-4ee3-b0c5-29e923e858e6",
       "name": "Extrair Domínio",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,7 +35,7 @@
       }
     },
     {
-      "id": "0160714d-223c-42ff-bc2a-7031c3f99ad5",
+      "id": "60b113aa-138d-4d25-bd87-f91e0b72d0a1",
       "name": "Pesquisar Site do Prospect",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -58,7 +58,7 @@
       }
     },
     {
-      "id": "42e9acbe-e63a-47d0-8136-e6287b2d1eb8",
+      "id": "ecd95131-97a5-421c-b6c0-448ab84588f5",
       "name": "Buscar no SearXNG",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -92,7 +92,7 @@
       }
     },
     {
-      "id": "4be2cdd5-b6e4-400e-abbc-fc7ebfdc6478",
+      "id": "dc100434-546e-4eed-8086-f66d40572eff",
       "name": "Compilar Perfil de Pesquisa",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -103,11 +103,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const domainData = $('Extrair Domínio').item.json;\nconst siteHtml = ($('Pesquisar Site do Prospect').item.json.data) || '';\nconst searxData = $json;\nconst searxResults = (searxData.results || []).slice(0, 5);\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 3000);\n\nconst resumoBusca = searxResults\n  .map((r, i) => `${i + 1}. ${r.title} — ${r.content || ''}`)\n  .join('\\n');\n\nconst perfil_pesquisa = [\n  `Domínio: ${domainData.dominio}`,\n  `Conteúdo do site institucional (trecho): ${textoLimpo || 'não foi possível acessar o site.'}`,\n  `Resultados de busca externa (SearXNG):\\n${resumoBusca || 'nenhum resultado relevante encontrado.'}`,\n].join('\\n\\n');\n\nreturn [{ json: { dominio: domainData.dominio, perfil_pesquisa } }];"
+        "jsCode": "const domainData = $('Extrair Domínio').item.json;\nconst siteHtml = ($('Pesquisar Site do Prospect').item.json.data) || '';\nconst searxData = $json;\n// Limitado propositalmente (3 resultados, ~120 chars cada) para manter o\n// prompt final curto o suficiente para o Gemma local responder em tempo\n// razoavel -- com o schema completo, o modelo e sensivel ao tamanho do prompt.\nconst searxResults = (searxData.results || []).slice(0, 3);\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 1200);\n\nconst resumoBusca = searxResults\n  .map((r, i) => `${i + 1}. ${r.title} — ${(r.content || '').slice(0, 150)}`)\n  .join('\\n');\n\nconst perfil_pesquisa = [\n  `Domínio: ${domainData.dominio}`,\n  `Conteúdo do site institucional (trecho): ${textoLimpo || 'não foi possível acessar o site.'}`,\n  `Resultados de busca externa (SearXNG):\\n${resumoBusca || 'nenhum resultado relevante encontrado.'}`,\n].join('\\n\\n');\n\nreturn [{ json: { dominio: domainData.dominio, perfil_pesquisa } }];"
       }
     },
     {
-      "id": "d1d660bb-07d2-4a92-9f47-2526233fcdfe",
+      "id": "b20f00b7-c6bb-4705-886d-6601ae5d534f",
       "name": "Gerar Embedding (Ollama)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -128,7 +128,7 @@
       }
     },
     {
-      "id": "e9f391a1-fe01-4fde-8a05-4f14e7f36414",
+      "id": "ba88ef9d-9796-49af-a3c3-5e2ef0d33168",
       "name": "Buscar Cases Similares (Qdrant)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -142,14 +142,14 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ query: $json.embeddings[0], limit: 3, with_payload: true }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: $json.embeddings[0], limit: 2, with_payload: true }) }}",
         "options": {
           "timeout": 15000
         }
       }
     },
     {
-      "id": "31ab1d77-f9ec-4cbe-83d8-ac83cad3e3ef",
+      "id": "af2bef84-e38c-4949-bffb-96f5562f3803",
       "name": "Montar Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -160,11 +160,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const perfil = $('Compilar Perfil de Pesquisa').item.json;\nconst qdrantResp = $json;\nconst points = (qdrantResp.result && qdrantResp.result.points) || [];\n\nconst casesTexto = points.map((p, i) => {\n  const c = p.payload;\n  return `Case ${i + 1} (similaridade ${p.score.toFixed(2)}): \"${c.titulo}\"\\n`\n    + `Classificação correta: ${c.classificacao_correta}\\n`\n    + `Sinais de diagnóstico: ${(c.sinais_diagnostico || []).join(' | ')}\\n`\n    + `Abordagem recomendada: ${c.abordagem_recomendada}`;\n}).join('\\n\\n');\n\nconst prompt = `Você é um analista de pré-vendas de uma consultoria especializada em IA. Sua tarefa é qualificar um prospect a partir da pesquisa abaixo, decidindo se a demanda dele é GenAI real, RPA, BI ou Automação clássica.\n\nPESQUISA SOBRE O PROSPECT:\n${perfil.perfil_pesquisa}\n\nCASES SIMILARES DA CONSULTORIA (use como referência de diagnóstico, não copie literalmente):\n${casesTexto || 'Nenhum case similar encontrado.'}\n\nResponda SOMENTE em JSON válido seguindo exatamente o schema fornecido. Seja honesto: se a pesquisa não trouxe sinal suficiente, use \"confianca\": \"Baixa\" e diga isso na justificativa.`;\n\nconst cases_relevantes = points.map((p) => ({\n  titulo: p.payload.titulo,\n  classificacao: p.payload.classificacao_correta,\n  similaridade: Math.round(p.score * 100) / 100,\n  licao_aplicavel: p.payload.resultado_licao,\n}));\n\nreturn [{ json: { dominio: perfil.dominio, prompt, cases_relevantes } }];"
+        "jsCode": "const perfil = $('Compilar Perfil de Pesquisa').item.json;\nconst qdrantResp = $json;\nconst points = (qdrantResp.result && qdrantResp.result.points) || [];\n\nconst casesTexto = points.map((p, i) => {\n  const c = p.payload;\n  return `Case ${i + 1} (similaridade ${p.score.toFixed(2)}): \"${c.titulo}\"\\n`\n    + `Classificação correta: ${c.classificacao_correta}\\n`\n    + `Sinais de diagnóstico: ${(c.sinais_diagnostico || []).slice(0, 2).join(' | ')}\\n`\n    + `Abordagem recomendada: ${c.abordagem_recomendada}`;\n}).join('\\n\\n');\n\n// O parametro \"format\" da API do Ollama (JSON Schema) e ignorado por este\n// modelo local (gemma4:12b-mlx via MLX nao aplica constrained decoding) --\n// confirmado em teste manual: mesmo um schema trivial voltou embrulhado em\n// ```json ... ```. Por isso o formato esperado precisa estar no PROPRIO\n// texto do prompt, com um exemplo concreto para o modelo imitar, e o\n// parsing final (node \"Montar Resposta Final\") precisa tolerar variacoes.\nconst exemploSaida = {\n  dominio: perfil.dominio,\n  perfil_empresa: {\n    nome: \"Nome da empresa\",\n    setor: \"Setor de atuação\",\n    porte_estimado: \"Grande | Média | Pequena | Indeterminado\",\n    resumo: \"resumo de 2-3 frases\",\n    sinais_maturidade_digital: [\"sinal 1\", \"sinal 2\"]\n  },\n  classificacao: {\n    tipo: \"GenAI real | RPA | BI | Automação clássica | Híbrido\",\n    confianca: \"Alta | Média | Baixa\",\n    justificativa: \"explicação baseada nos sinais e nos cases similares\"\n  },\n  maturidade_ia_prospect: {\n    nivel: \"Inicial | Em desenvolvimento | Avançado | Indeterminado\",\n    justificativa: \"...\"\n  },\n  direcionamento_estrategia: {\n    recomendacao: \"Manter abordagem proposta pelo prospect | Propor shift de estratégia | Aprofundar discovery antes de avançar\",\n    justificativa: \"...\"\n  },\n  perguntas_discovery: [\"pergunta 1\", \"pergunta 2\", \"pergunta 3\"]\n};\n\nconst prompt = `Você é um analista de pré-vendas de uma consultoria especializada em IA. Sua tarefa é qualificar um prospect a partir da pesquisa abaixo, decidindo se a demanda dele é GenAI real, RPA, BI ou Automação clássica.\n\nPESQUISA SOBRE O PROSPECT:\n${perfil.perfil_pesquisa}\n\nCASES SIMILARES DA CONSULTORIA (use como referência de diagnóstico, não copie literalmente):\n${casesTexto || 'Nenhum case similar encontrado.'}\n\nResponda APENAS com um objeto JSON no formato do exemplo abaixo, preenchido com sua análise (troque os valores de exemplo pelos reais; os campos com \"|\" indicam as únicas opções válidas, escolha uma). Não escreva nada antes ou depois do JSON, e não use blocos de código (sem \\`\\`\\`).\n\n${JSON.stringify(exemploSaida, null, 2)}\n\nSeja honesto: se a pesquisa não trouxe sinal suficiente, use \"confianca\": \"Baixa\" e diga isso na justificativa.`;\n\nconst cases_relevantes = points.map((p) => ({\n  titulo: p.payload.titulo,\n  classificacao: p.payload.classificacao_correta,\n  similaridade: Math.round(p.score * 100) / 100,\n  licao_aplicavel: p.payload.resultado_licao,\n}));\n\n// IMPORTANTE: o corpo da requisicao ao Ollama e montado AQUI (em JS real),\n// nao na expressao ={{ }} do node HTTP Request seguinte. O parser de\n// expressoes do n8n usa correspondencia nao-gulosa e para no PRIMEIRO\n// '}}' que encontrar no texto do template - como o JSON Schema abaixo tem\n// varias chaves de fechamento aninhadas ('}}' aparece dezenas de vezes),\n// embutir isso direto numa expressao ={{ ... }} trunca o JSON no meio.\n// Construindo a string aqui e so referenciando '$json.body_llm_request'\n// no node seguinte, a expressao la fica trivial (um unico '}}' no final).\nconst outputSchema = {\"type\": \"object\", \"properties\": {\"dominio\": {\"type\": \"string\"}, \"perfil_empresa\": {\"type\": \"object\", \"properties\": {\"nome\": {\"type\": \"string\"}, \"setor\": {\"type\": \"string\"}, \"porte_estimado\": {\"type\": \"string\", \"enum\": [\"Grande\", \"Média\", \"Pequena\", \"Indeterminado\"]}, \"resumo\": {\"type\": \"string\"}, \"sinais_maturidade_digital\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"nome\", \"setor\", \"porte_estimado\", \"resumo\", \"sinais_maturidade_digital\"]}, \"classificacao\": {\"type\": \"object\", \"properties\": {\"tipo\": {\"type\": \"string\", \"enum\": [\"GenAI real\", \"RPA\", \"BI\", \"Automação clássica\", \"Híbrido\"]}, \"confianca\": {\"type\": \"string\", \"enum\": [\"Alta\", \"Média\", \"Baixa\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"tipo\", \"confianca\", \"justificativa\"]}, \"maturidade_ia_prospect\": {\"type\": \"object\", \"properties\": {\"nivel\": {\"type\": \"string\", \"enum\": [\"Inicial\", \"Em desenvolvimento\", \"Avançado\", \"Indeterminado\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"nivel\", \"justificativa\"]}, \"direcionamento_estrategia\": {\"type\": \"object\", \"properties\": {\"recomendacao\": {\"type\": \"string\", \"enum\": [\"Manter abordagem proposta pelo prospect\", \"Propor shift de estratégia\", \"Aprofundar discovery antes de avançar\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"recomendacao\", \"justificativa\"]}, \"perguntas_discovery\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 3, \"maxItems\": 5}}, \"required\": [\"dominio\", \"perfil_empresa\", \"classificacao\", \"maturidade_ia_prospect\", \"direcionamento_estrategia\", \"perguntas_discovery\"]};\n\nconst body_llm_request = JSON.stringify({\n  model: 'gemma4:12b-mlx',\n  prompt,\n  format: outputSchema,\n  stream: false,\n});\n\nreturn [{ json: { dominio: perfil.dominio, prompt, cases_relevantes, body_llm_request } }];"
       }
     },
     {
-      "id": "04b7b478-a30e-41df-994c-64d2b60e101d",
+      "id": "2ccb23f7-f48b-4eee-a0db-dae6422d4c92",
       "name": "Classificar com Gemma (Ollama)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -178,14 +178,14 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'gemma4:12b-mlx', prompt: $json.prompt, format: {\"type\": \"object\", \"properties\": {\"dominio\": {\"type\": \"string\"}, \"perfil_empresa\": {\"type\": \"object\", \"properties\": {\"nome\": {\"type\": \"string\"}, \"setor\": {\"type\": \"string\"}, \"porte_estimado\": {\"type\": \"string\", \"enum\": [\"Grande\", \"Média\", \"Pequena\", \"Indeterminado\"]}, \"resumo\": {\"type\": \"string\"}, \"sinais_maturidade_digital\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"nome\", \"setor\", \"porte_estimado\", \"resumo\", \"sinais_maturidade_digital\"]}, \"classificacao\": {\"type\": \"object\", \"properties\": {\"tipo\": {\"type\": \"string\", \"enum\": [\"GenAI real\", \"RPA\", \"BI\", \"Automação clássica\", \"Híbrido\"]}, \"confianca\": {\"type\": \"string\", \"enum\": [\"Alta\", \"Média\", \"Baixa\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"tipo\", \"confianca\", \"justificativa\"]}, \"maturidade_ia_prospect\": {\"type\": \"object\", \"properties\": {\"nivel\": {\"type\": \"string\", \"enum\": [\"Inicial\", \"Em desenvolvimento\", \"Avançado\", \"Indeterminado\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"nivel\", \"justificativa\"]}, \"direcionamento_estrategia\": {\"type\": \"object\", \"properties\": {\"recomendacao\": {\"type\": \"string\", \"enum\": [\"Manter abordagem proposta pelo prospect\", \"Propor shift de estratégia\", \"Aprofundar discovery antes de avançar\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"recomendacao\", \"justificativa\"]}, \"perguntas_discovery\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 3, \"maxItems\": 5}}, \"required\": [\"dominio\", \"perfil_empresa\", \"classificacao\", \"maturidade_ia_prospect\", \"direcionamento_estrategia\", \"perguntas_discovery\"]}, stream: false }) }",
+        "jsonBody": "={{ $json.body_llm_request }}",
         "options": {
-          "timeout": 120000
+          "timeout": 600000
         }
       }
     },
     {
-      "id": "edcc2db0-e4bc-4e8a-bf61-c34f381a5b7a",
+      "id": "62320660-da0a-4ae4-b54d-3f4e07038dfb",
       "name": "Montar Resposta Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -196,11 +196,11 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const montado = $('Montar Prompt').item.json;\nconst ollamaResp = $json;\n\nlet parsed;\ntry {\n  parsed = JSON.parse(ollamaResp.response);\n} catch (e) {\n  parsed = null;\n}\n\nif (!parsed) {\n  return [{ json: {\n    markdown: `⚠️ Não consegui interpretar a resposta do modelo para o domínio **${montado.dominio}**. Tente novamente.\\n\\nResposta bruta:\\n${ollamaResp.response || ''}`\n  } }];\n}\n\nconst disclaimer = 'Esta é uma recomendação gerada por IA para apoiar o direcionamento comercial. A decisão final sobre estratégia e discovery é do vendedor.';\n\nconst casesTexto = (montado.cases_relevantes || []).map((c, i) =>\n  `${i + 1}. **${c.titulo}** _(${c.classificacao}, similaridade ${c.similaridade})_\\n   ${c.licao_aplicavel}`\n).join('\\n');\n\nconst markdown = `## Qualificação — ${parsed.dominio || montado.dominio}\n\n**Perfil da empresa:** ${parsed.perfil_empresa.resumo}\n- Setor: ${parsed.perfil_empresa.setor}\n- Porte estimado: ${parsed.perfil_empresa.porte_estimado}\n- Sinais de maturidade digital: ${(parsed.perfil_empresa.sinais_maturidade_digital || []).join('; ')}\n\n**Classificação:** ${parsed.classificacao.tipo} _(confiança: ${parsed.classificacao.confianca})_\n${parsed.classificacao.justificativa}\n\n**Maturidade em IA do prospect:** ${parsed.maturidade_ia_prospect.nivel}\n${parsed.maturidade_ia_prospect.justificativa}\n\n**Direcionamento sugerido:** ${parsed.direcionamento_estrategia.recomendacao}\n${parsed.direcionamento_estrategia.justificativa}\n\n**Perguntas de discovery sugeridas:**\n${parsed.perguntas_discovery.map((q) => `- ${q}`).join('\\n')}\n\n**Cases relevantes da consultoria:**\n${casesTexto || '_nenhum case suficientemente similar encontrado._'}\n\n---\n_${disclaimer}_`;\n\nreturn [{ json: { markdown } }];"
+        "jsCode": "const montado = $('Montar Prompt').item.json;\nconst ollamaResp = $json;\n\n// O modelo local nem sempre respeita \"responda so o JSON\": as vezes embrulha\n// em ```json ... ``` ou acrescenta texto antes/depois. Limpamos isso antes\n// de tentar o parse, e so entao extraimos o primeiro objeto JSON encontrado.\nfunction extrairJson(texto) {\n  let limpo = String(texto || '')\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  const inicio = limpo.indexOf('{');\n  const fim = limpo.lastIndexOf('}');\n  if (inicio === -1 || fim === -1 || fim < inicio) return null;\n  try {\n    return JSON.parse(limpo.slice(inicio, fim + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nconst parsed = extrairJson(ollamaResp.response);\n\nif (!parsed) {\n  return [{ json: {\n    markdown: `⚠️ Não consegui interpretar a resposta do modelo para o domínio **${montado.dominio}**. Tente novamente.\\n\\nResposta bruta:\\n${ollamaResp.response || ''}`\n  } }];\n}\n\nconst disclaimer = 'Esta é uma recomendação gerada por IA para apoiar o direcionamento comercial. A decisão final sobre estratégia e discovery é do vendedor.';\n\nconst casesTexto = (montado.cases_relevantes || []).map((c, i) =>\n  `${i + 1}. **${c.titulo}** _(${c.classificacao}, similaridade ${c.similaridade})_\\n   ${c.licao_aplicavel}`\n).join('\\n');\n\n// Acesso tolerante: o modelo local pode nao preencher 100% da estrutura\n// esperada. Preferimos mostrar \"n/d\" a quebrar a resposta inteira.\nconst pe = parsed.perfil_empresa || {};\nconst cl = parsed.classificacao || {};\nconst mat = parsed.maturidade_ia_prospect || {};\nconst dir = parsed.direcionamento_estrategia || {};\nconst perguntas = Array.isArray(parsed.perguntas_discovery) ? parsed.perguntas_discovery : [];\n\nconst markdown = `## Qualificação — ${parsed.dominio || montado.dominio}\n\n**Perfil da empresa:** ${pe.resumo || 'n/d'}\n- Setor: ${pe.setor || 'n/d'}\n- Porte estimado: ${pe.porte_estimado || 'n/d'}\n- Sinais de maturidade digital: ${(pe.sinais_maturidade_digital || []).join('; ') || 'n/d'}\n\n**Classificação:** ${cl.tipo || 'n/d'} _(confiança: ${cl.confianca || 'n/d'})_\n${cl.justificativa || ''}\n\n**Maturidade em IA do prospect:** ${mat.nivel || 'n/d'}\n${mat.justificativa || ''}\n\n**Direcionamento sugerido:** ${dir.recomendacao || 'n/d'}\n${dir.justificativa || ''}\n\n**Perguntas de discovery sugeridas:**\n${perguntas.length ? perguntas.map((q) => `- ${q}`).join('\\n') : 'n/d'}\n\n**Cases relevantes da consultoria:**\n${casesTexto || '_nenhum case suficientemente similar encontrado._'}\n\n---\n_${disclaimer}_`;\n\nreturn [{ json: { markdown } }];"
       }
     },
     {
-      "id": "e40fde6f-a6a0-4c7b-ace8-f4002a731665",
+      "id": "b7b94025-0bf0-4d7a-9c83-c7d2d548b144",
       "name": "Responder ao Open WebUI",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,

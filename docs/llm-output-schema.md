@@ -1,9 +1,15 @@
 # Schema de saída do LLM
 
-Contrato estruturado que o Gemma (via Ollama, parâmetro `format`) deve seguir ao classificar um
-prospect. Fonte única em [`n8n/schemas/llm-output.schema.json`](../n8n/schemas/llm-output.schema.json),
-usado literalmente no node "Classificar com Gemma (Ollama)" do
-[workflow do N8N](../n8n/workflows/ai-sdr-qualification.json).
+Contrato estruturado que o Gemma deve seguir ao classificar um prospect. Fonte única em
+[`n8n/schemas/llm-output.schema.json`](../n8n/schemas/llm-output.schema.json).
+
+> **Atualização (2026-07-10):** o parâmetro `format` da API do Ollama (que deveria forçar essa
+> estrutura via constrained decoding) é **ignorado por `gemma4:12b-mlx`** — confirmado em teste
+> isolado. O schema ainda é a fonte única de verdade, mas é aplicado via **exemplo embutido no
+> texto do prompt** (node "Montar Prompt" do workflow) em vez do parâmetro `format`, e o node
+> "Montar Resposta Final" faz parsing tolerante (remove blocos ` ``` `, acessa campos com
+> fallback). Testado ponta a ponta com sucesso. Ver detalhes em
+> [`n8n/workflows/README.md`](../n8n/workflows/README.md#descoberta-importante-format-json-schema-do-ollama-é-ignorado-por-este-modelo).
 
 ## Decisão de design: `cases_relevantes` não é gerado pelo LLM
 

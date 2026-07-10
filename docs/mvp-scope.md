@@ -153,6 +153,6 @@ funcionando.
 - [x] Montar base de cases curada (`data/cases/`, 20 itens) e indexar no Qdrant
 - [x] Definir schema JSON da saída do LLM (ver [`docs/llm-output-schema.md`](./llm-output-schema.md))
 - [x] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta (ver [`n8n/workflows/`](../n8n/workflows/README.md))
-- [ ] **Pendente manual:** completar setup inicial do N8N, ativar o workflow e testar ponta a ponta (não pude fazer isso sem acesso à sua conta)
-- [ ] Instalar a Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) e testar no chat
+- [x] Setup inicial do N8N, ativação do workflow e **teste ponta a ponta com sucesso** (domínio real `itau.com.br`, ~3min20s de resposta)
+- [ ] **Pendente manual:** instalar a Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) e testar no chat — não automatizável (Open WebUI já tem admin configurado, sem acesso à senha)
 - [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação

@@ -6,6 +6,9 @@
 credentials.json
 service-account*.json
 
+# === Config local de ferramentas (Claude Code harness, etc.) ===
+.claude/
+
 # === Python ===
 __pycache__/
 *.py[cod]
