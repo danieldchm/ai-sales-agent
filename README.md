@@ -26,6 +26,8 @@ O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 
 - [`docs/genai-canvas.md`](docs/genai-canvas.md) — GenAI Canvas (transcrição do artefato original)
 - [`docs/mvp-scope.md`](docs/mvp-scope.md) — Revisão crítica do canvas, pivot de stack e escopo do MVP
+- [`docs/llm-output-schema.md`](docs/llm-output-schema.md) — Schema JSON da saída do LLM (classificação estruturada)
+- [`n8n/workflows/README.md`](n8n/workflows/README.md) — Workflow do N8N: como abrir, ativar e testar
 
 ## Stack
 
@@ -72,11 +74,24 @@ pip install -r requirements.txt
 python3 scripts/ingest_cases.py
 ```
 
+Por fim, siga [`n8n/workflows/README.md`](n8n/workflows/README.md) para completar o setup inicial
+do N8N (criar sua conta de owner), ativar o workflow **"AI SDR - Qualificação de Leads"** (já
+importado) e instalar a [Function do Open WebUI](openwebui/pipe_ai_sdr.py).
+
 ## Base de conhecimento (RAG)
 
 [`data/cases/`](data/cases/README.md) contém 20 cases pesquisados e curados (11 reais e
 documentados publicamente + 9 cenários compostos claramente identificados) que ensinam o agente
 a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant.
+
+## Workflow N8N e Function do Open WebUI
+
+- [`n8n/workflows/ai-sdr-qualification.json`](n8n/workflows/ai-sdr-qualification.json) — pipeline
+  completo (webhook → research → RAG → Ollama/Gemma → resposta), já importado no seu N8N local
+- [`n8n/schemas/llm-output.schema.json`](n8n/schemas/llm-output.schema.json) — schema JSON usado
+  na chamada estruturada ao Gemma (ver [`docs/llm-output-schema.md`](docs/llm-output-schema.md))
+- [`openwebui/pipe_ai_sdr.py`](openwebui/pipe_ai_sdr.py) — Function/Pipe que conecta o chat do
+  Open WebUI ao webhook do N8N
 
 ## Estrutura
 
@@ -93,7 +108,16 @@ a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant
 │   └── ingest_cases.py  # gera embeddings (Ollama) e indexa os cases no Qdrant
 ├── searxng/
 │   └── settings.yml     # habilita formato JSON (consumido pelo N8N)
+├── n8n/
+│   ├── workflows/
+│   │   ├── ai-sdr-qualification.json  # pipeline completo (11 nodes)
+│   │   └── README.md                  # como abrir, ativar e testar
+│   └── schemas/
+│       └── llm-output.schema.json     # schema JSON da saída do Gemma
+├── openwebui/
+│   └── pipe_ai_sdr.py   # Function/Pipe: chat -> webhook do N8N
 └── docs/
-    ├── genai-canvas.md  # canvas original (rascunho)
-    └── mvp-scope.md     # revisão + escopo do MVP
+    ├── genai-canvas.md         # canvas original (rascunho)
+    ├── mvp-scope.md            # revisão + escopo do MVP
+    └── llm-output-schema.md    # schema JSON documentado com exemplo
 ```

@@ -151,6 +151,8 @@ funcionando.
 - [ ] Validar este recorte com o professor/orientador
 - [x] Subir N8N + SearXNG + Qdrant via docker-compose
 - [x] Montar base de cases curada (`data/cases/`, 20 itens) e indexar no Qdrant
-- [ ] Definir schema JSON da saída do LLM (perfil, classificação, maturidade, recomendação, perguntas)
+- [x] Definir schema JSON da saída do LLM (ver [`docs/llm-output-schema.md`](./llm-output-schema.md))
+- [x] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta (ver [`n8n/workflows/`](../n8n/workflows/README.md))
+- [ ] **Pendente manual:** completar setup inicial do N8N, ativar o workflow e testar ponta a ponta (não pude fazer isso sem acesso à sua conta)
+- [ ] Instalar a Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) e testar no chat
 - [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação
-- [ ] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta no Open WebUI

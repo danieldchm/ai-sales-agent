@@ -1,0 +1,333 @@
+{
+  "id": "aisdrqualification01",
+  "name": "AI SDR - Qualificação de Leads",
+  "nodes": [
+    {
+      "id": "4b8bf473-8efa-4bfe-9559-15a94adcb604",
+      "name": "Webhook - Recebe Domínio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-sdr",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "8c44a6d4-6979-48f7-ac71-71d2c9662c68"
+    },
+    {
+      "id": "428edd45-8771-464f-bc21-75380da0f569",
+      "name": "Extrair Domínio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst rawMessage = body.domain || body.message || body.dominio || '';\nconst match = String(rawMessage).match(/([a-z0-9-]+\\.)+[a-z]{2,}/i);\nconst dominio = match\n  ? match[0].toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '')\n  : String(rawMessage).trim();\n\nif (!dominio) {\n  throw new Error(\"Não foi possível identificar um domínio na mensagem recebida.\");\n}\n\nreturn [{ json: { dominio, url_base: `https://${dominio}` } }];"
+      }
+    },
+    {
+      "id": "0160714d-223c-42ff-bc2a-7031c3f99ad5",
+      "name": "Pesquisar Site do Prospect",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url_base }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "42e9acbe-e63a-47d0-8136-e6287b2d1eb8",
+      "name": "Buscar no SearXNG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Extrair Domínio').item.json.dominio + ' empresa notícias tecnologia inteligência artificial' }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "language",
+              "value": "pt-BR"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "4be2cdd5-b6e4-400e-abbc-fc7ebfdc6478",
+      "name": "Compilar Perfil de Pesquisa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const domainData = $('Extrair Domínio').item.json;\nconst siteHtml = ($('Pesquisar Site do Prospect').item.json.data) || '';\nconst searxData = $json;\nconst searxResults = (searxData.results || []).slice(0, 5);\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 3000);\n\nconst resumoBusca = searxResults\n  .map((r, i) => `${i + 1}. ${r.title} — ${r.content || ''}`)\n  .join('\\n');\n\nconst perfil_pesquisa = [\n  `Domínio: ${domainData.dominio}`,\n  `Conteúdo do site institucional (trecho): ${textoLimpo || 'não foi possível acessar o site.'}`,\n  `Resultados de busca externa (SearXNG):\\n${resumoBusca || 'nenhum resultado relevante encontrado.'}`,\n].join('\\n\\n');\n\nreturn [{ json: { dominio: domainData.dominio, perfil_pesquisa } }];"
+      }
+    },
+    {
+      "id": "d1d660bb-07d2-4a92-9f47-2526233fcdfe",
+      "name": "Gerar Embedding (Ollama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/embed",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'ollama.com/library/embeddinggemma:latest', input: $json.perfil_pesquisa }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "e9f391a1-fe01-4fde-8a05-4f14e7f36414",
+      "name": "Buscar Cases Similares (Qdrant)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/ai_sdr_cases/points/query",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: $json.embeddings[0], limit: 3, with_payload: true }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "31ab1d77-f9ec-4cbe-83d8-ac83cad3e3ef",
+      "name": "Montar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const perfil = $('Compilar Perfil de Pesquisa').item.json;\nconst qdrantResp = $json;\nconst points = (qdrantResp.result && qdrantResp.result.points) || [];\n\nconst casesTexto = points.map((p, i) => {\n  const c = p.payload;\n  return `Case ${i + 1} (similaridade ${p.score.toFixed(2)}): \"${c.titulo}\"\\n`\n    + `Classificação correta: ${c.classificacao_correta}\\n`\n    + `Sinais de diagnóstico: ${(c.sinais_diagnostico || []).join(' | ')}\\n`\n    + `Abordagem recomendada: ${c.abordagem_recomendada}`;\n}).join('\\n\\n');\n\nconst prompt = `Você é um analista de pré-vendas de uma consultoria especializada em IA. Sua tarefa é qualificar um prospect a partir da pesquisa abaixo, decidindo se a demanda dele é GenAI real, RPA, BI ou Automação clássica.\n\nPESQUISA SOBRE O PROSPECT:\n${perfil.perfil_pesquisa}\n\nCASES SIMILARES DA CONSULTORIA (use como referência de diagnóstico, não copie literalmente):\n${casesTexto || 'Nenhum case similar encontrado.'}\n\nResponda SOMENTE em JSON válido seguindo exatamente o schema fornecido. Seja honesto: se a pesquisa não trouxe sinal suficiente, use \"confianca\": \"Baixa\" e diga isso na justificativa.`;\n\nconst cases_relevantes = points.map((p) => ({\n  titulo: p.payload.titulo,\n  classificacao: p.payload.classificacao_correta,\n  similaridade: Math.round(p.score * 100) / 100,\n  licao_aplicavel: p.payload.resultado_licao,\n}));\n\nreturn [{ json: { dominio: perfil.dominio, prompt, cases_relevantes } }];"
+      }
+    },
+    {
+      "id": "04b7b478-a30e-41df-994c-64d2b60e101d",
+      "name": "Classificar com Gemma (Ollama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gemma4:12b-mlx', prompt: $json.prompt, format: {\"type\": \"object\", \"properties\": {\"dominio\": {\"type\": \"string\"}, \"perfil_empresa\": {\"type\": \"object\", \"properties\": {\"nome\": {\"type\": \"string\"}, \"setor\": {\"type\": \"string\"}, \"porte_estimado\": {\"type\": \"string\", \"enum\": [\"Grande\", \"Média\", \"Pequena\", \"Indeterminado\"]}, \"resumo\": {\"type\": \"string\"}, \"sinais_maturidade_digital\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"nome\", \"setor\", \"porte_estimado\", \"resumo\", \"sinais_maturidade_digital\"]}, \"classificacao\": {\"type\": \"object\", \"properties\": {\"tipo\": {\"type\": \"string\", \"enum\": [\"GenAI real\", \"RPA\", \"BI\", \"Automação clássica\", \"Híbrido\"]}, \"confianca\": {\"type\": \"string\", \"enum\": [\"Alta\", \"Média\", \"Baixa\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"tipo\", \"confianca\", \"justificativa\"]}, \"maturidade_ia_prospect\": {\"type\": \"object\", \"properties\": {\"nivel\": {\"type\": \"string\", \"enum\": [\"Inicial\", \"Em desenvolvimento\", \"Avançado\", \"Indeterminado\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"nivel\", \"justificativa\"]}, \"direcionamento_estrategia\": {\"type\": \"object\", \"properties\": {\"recomendacao\": {\"type\": \"string\", \"enum\": [\"Manter abordagem proposta pelo prospect\", \"Propor shift de estratégia\", \"Aprofundar discovery antes de avançar\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"recomendacao\", \"justificativa\"]}, \"perguntas_discovery\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 3, \"maxItems\": 5}}, \"required\": [\"dominio\", \"perfil_empresa\", \"classificacao\", \"maturidade_ia_prospect\", \"direcionamento_estrategia\", \"perguntas_discovery\"]}, stream: false }) }",
+        "options": {
+          "timeout": 120000
+        }
+      }
+    },
+    {
+      "id": "edcc2db0-e4bc-4e8a-bf61-c34f381a5b7a",
+      "name": "Montar Resposta Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const montado = $('Montar Prompt').item.json;\nconst ollamaResp = $json;\n\nlet parsed;\ntry {\n  parsed = JSON.parse(ollamaResp.response);\n} catch (e) {\n  parsed = null;\n}\n\nif (!parsed) {\n  return [{ json: {\n    markdown: `⚠️ Não consegui interpretar a resposta do modelo para o domínio **${montado.dominio}**. Tente novamente.\\n\\nResposta bruta:\\n${ollamaResp.response || ''}`\n  } }];\n}\n\nconst disclaimer = 'Esta é uma recomendação gerada por IA para apoiar o direcionamento comercial. A decisão final sobre estratégia e discovery é do vendedor.';\n\nconst casesTexto = (montado.cases_relevantes || []).map((c, i) =>\n  `${i + 1}. **${c.titulo}** _(${c.classificacao}, similaridade ${c.similaridade})_\\n   ${c.licao_aplicavel}`\n).join('\\n');\n\nconst markdown = `## Qualificação — ${parsed.dominio || montado.dominio}\n\n**Perfil da empresa:** ${parsed.perfil_empresa.resumo}\n- Setor: ${parsed.perfil_empresa.setor}\n- Porte estimado: ${parsed.perfil_empresa.porte_estimado}\n- Sinais de maturidade digital: ${(parsed.perfil_empresa.sinais_maturidade_digital || []).join('; ')}\n\n**Classificação:** ${parsed.classificacao.tipo} _(confiança: ${parsed.classificacao.confianca})_\n${parsed.classificacao.justificativa}\n\n**Maturidade em IA do prospect:** ${parsed.maturidade_ia_prospect.nivel}\n${parsed.maturidade_ia_prospect.justificativa}\n\n**Direcionamento sugerido:** ${parsed.direcionamento_estrategia.recomendacao}\n${parsed.direcionamento_estrategia.justificativa}\n\n**Perguntas de discovery sugeridas:**\n${parsed.perguntas_discovery.map((q) => `- ${q}`).join('\\n')}\n\n**Cases relevantes da consultoria:**\n${casesTexto || '_nenhum case suficientemente similar encontrado._'}\n\n---\n_${disclaimer}_`;\n\nreturn [{ json: { markdown } }];"
+      }
+    },
+    {
+      "id": "e40fde6f-a6a0-4c7b-ace8-f4002a731665",
+      "name": "Responder ao Open WebUI",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2400,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { response: $json.markdown } }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Recebe Domínio": {
+      "main": [
+        [
+          {
+            "node": "Extrair Domínio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Domínio": {
+      "main": [
+        [
+          {
+            "node": "Pesquisar Site do Prospect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pesquisar Site do Prospect": {
+      "main": [
+        [
+          {
+            "node": "Buscar no SearXNG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar no SearXNG": {
+      "main": [
+        [
+          {
+            "node": "Compilar Perfil de Pesquisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilar Perfil de Pesquisa": {
+      "main": [
+        [
+          {
+            "node": "Gerar Embedding (Ollama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Embedding (Ollama)": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cases Similares (Qdrant)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cases Similares (Qdrant)": {
+      "main": [
+        [
+          {
+            "node": "Montar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Prompt": {
+      "main": [
+        [
+          {
+            "node": "Classificar com Gemma (Ollama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar com Gemma (Ollama)": {
+      "main": [
+        [
+          {
+            "node": "Montar Resposta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Resposta Final": {
+      "main": [
+        [
+          {
+            "node": "Responder ao Open WebUI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

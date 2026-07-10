@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "dominio": { "type": "string" },
+    "perfil_empresa": {
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "setor": { "type": "string" },
+        "porte_estimado": {
+          "type": "string",
+          "enum": ["Grande", "Média", "Pequena", "Indeterminado"]
+        },
+        "resumo": { "type": "string" },
+        "sinais_maturidade_digital": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["nome", "setor", "porte_estimado", "resumo", "sinais_maturidade_digital"]
+    },
+    "classificacao": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["GenAI real", "RPA", "BI", "Automação clássica", "Híbrido"]
+        },
+        "confianca": {
+          "type": "string",
+          "enum": ["Alta", "Média", "Baixa"]
+        },
+        "justificativa": { "type": "string" }
+      },
+      "required": ["tipo", "confianca", "justificativa"]
+    },
+    "maturidade_ia_prospect": {
+      "type": "object",
+      "properties": {
+        "nivel": {
+          "type": "string",
+          "enum": ["Inicial", "Em desenvolvimento", "Avançado", "Indeterminado"]
+        },
+        "justificativa": { "type": "string" }
+      },
+      "required": ["nivel", "justificativa"]
+    },
+    "direcionamento_estrategia": {
+      "type": "object",
+      "properties": {
+        "recomendacao": {
+          "type": "string",
+          "enum": [
+            "Manter abordagem proposta pelo prospect",
+            "Propor shift de estratégia",
+            "Aprofundar discovery antes de avançar"
+          ]
+        },
+        "justificativa": { "type": "string" }
+      },
+      "required": ["recomendacao", "justificativa"]
+    },
+    "perguntas_discovery": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 3,
+      "maxItems": 5
+    }
+  },
+  "required": [
+    "dominio",
+    "perfil_empresa",
+    "classificacao",
+    "maturidade_ia_prospect",
+    "direcionamento_estrategia",
+    "perguntas_discovery"
+  ]
+}
