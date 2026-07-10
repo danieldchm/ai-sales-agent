@@ -80,3 +80,18 @@ Para usar: abra o Open WebUI, selecione o modelo **"AI SDR - Qualificação de L
 envie um domínio (ex.: `itau.com.br`). Código-fonte em
 [`openwebui/pipe_ai_sdr.py`](../../openwebui/pipe_ai_sdr.py) caso precise editar (ex.: trocar a
 URL do webhook via Valves, se o N8N mudar de porta/host).
+
+### Bug corrigido: resposta "sumia" no chat mesmo com o N8N completando
+
+Nos primeiros testes reais no navegador, o N8N terminava a execução com sucesso (confirmado nos
+logs/execuções do N8N) mas o Open WebUI nunca exibia a resposta. Causa raiz encontrada nos logs do
+Open WebUI: `SESSION_POOL_TIMEOUT = 120` segundos — se a sessão do chat fica mais de 2 minutos sem
+nenhuma atividade, o Open WebUI a considera "órfã" e a descarta (`Reaping orphaned session`). Como
+a v0.1.0 da Function fazia uma única chamada bloqueante de 3-4 minutos sem devolver nada nesse
+meio tempo, a sessão expirava antes da resposta chegar.
+
+**Correção (v0.2.0):** `pipe()` agora é um *generator* que roda a chamada ao N8N em uma thread e
+emite uma mensagem de progresso a cada 20s (`poll_interval_seconds`, bem abaixo do limite de
+120s) enquanto aguarda — o usuário vê "⏳ ainda processando... (Ns)" no chat até a resposta final
+chegar. Testado com `stream: true` (o modo real do navegador): chunks confirmados chegando a cada
+~20s e resposta final íntegra ao fim (~4min13s no teste com `magazineluiza.com.br`).
