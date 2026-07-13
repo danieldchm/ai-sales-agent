@@ -251,7 +251,7 @@
     },
     {
       "id": "2ccb23f7-f48b-4eee-a0db-dae6422d4c92",
-      "name": "Classificar com Gemini (Chain)",
+      "name": "Classificar com Gemma (Chain)",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.6,
       "position": [
@@ -266,22 +266,17 @@
     },
     {
       "id": "d4f1a6c1-2b7a-4c9e-9a1d-7e6f5c4b3a20",
-      "name": "Gemini Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
       "position": [
         1860,
         520
       ],
       "parameters": {
-        "modelName": "models/gemini-2.5-flash",
+        "model": "gemma4:12b-mlx",
+        "baseURL": "http://host.docker.internal:11434",
         "options": {}
-      },
-      "credentials": {
-        "googlePalmApi": {
-          "id": "nAGsqvwXlpDsbCET",
-          "name": "Google Gemini(PaLM) Api account"
-        }
       }
     },
     {
@@ -1150,18 +1145,18 @@
       "main": [
         [
           {
-            "node": "Classificar com Gemini (Chain)",
+            "node": "Classificar com Gemma (Chain)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gemini Chat Model": {
+    "Ollama Chat Model": {
       "ai_languageModel": [
         [
           {
-            "node": "Classificar com Gemini (Chain)",
+            "node": "Classificar com Gemma (Chain)",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -1172,14 +1167,14 @@
       "ai_memory": [
         [
           {
-            "node": "Classificar com Gemini (Chain)",
+            "node": "Classificar com Gemma (Chain)",
             "type": "ai_memory",
             "index": 0
           }
         ]
       ]
     },
-    "Classificar com Gemini (Chain)": {
+    "Classificar com Gemma (Chain)": {
       "main": [
         [
           {

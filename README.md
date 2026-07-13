@@ -22,6 +22,105 @@ O vendedor informa apenas o **domínio do prospect** (ex.: `itau.com.br`) no cha
 
 O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 
+## Arquitetura do Agente
+
+O diagrama abaixo ilustra o fluxo técnico do agente, agrupando os processos em módulos lógicos.
+
+```mermaid
+flowchart TD
+
+    %% Definindo os nós com formas modernas
+    User([👤 Vendedor / SDR])
+    User2([👤 Admin])
+    ChatIn[💬 N8N Chat Trigger]
+    ChatOut[✅ Resposta no Chat N8N]
+    
+    subgraph Frontend [Interação com Usuário]
+        direction TB
+        User -->|Informa Domínio| ChatIn
+        ChatOut -.->|Recomendação Final| User
+    end
+
+    subgraph DataEnrichment [🔎 Módulo de Enriquecimento]
+        direction TB
+        ExtrairDominio(Extrair Domínio)
+        ScrapingSite{{Scraping do Site Institucional}}
+        DetectSetor(Heurística de Setor)
+        SearxngEmpresa[🌐 SearXNG: Empresa]
+        SearxngSetor[🌐 SearXNG: Setor IA]
+        SearxngMercado[🌐 SearXNG: Mercado]
+        
+        ExtrairDominio --> ScrapingSite
+        ScrapingSite --> DetectSetor
+        DetectSetor --> SearxngEmpresa & SearxngSetor & SearxngMercado
+    end
+
+    subgraph Financial [📊 Pipeline Financeiro B3/CVM]
+        direction TB
+        BrasilAPI(Consultar CNPJ BrasilAPI)
+        TickersB3(Buscar Tickers brapi)
+        MatchB3{Listada na B3?}
+        DownloadCVM[📥 Baixar ITR Zip CVM]
+        ParseCVM[⚙️ Parse CSV DRE]
+        ChunksCVM(Chunks Financeiros)
+        
+        FormTrigger[📤 Upload Manual de PDF] --> ParsePDF[Extrair Texto do PDF] --> ChunksManual(Chunks do Upload)
+
+        BrasilAPI --> TickersB3 --> MatchB3
+        MatchB3 -- Sim --> DownloadCVM --> ParseCVM --> ChunksCVM
+        MatchB3 -- Não --> SkipCVM(Pular Dados Financeiros)
+    end
+
+    subgraph VectorDB [🧠 Vector Retrieval & RAG]
+        direction TB
+        CompilaPerfil(Compilar Perfil)
+        EmbedOllama((Ollama Embedding))
+        QdrantCases[(Qdrant: Base de Cases)]
+        QdrantFinance[(Qdrant: Relatórios)]
+        
+        EmbedOllama --> QdrantCases & QdrantFinance
+    end
+
+    subgraph LLMReasoning [🤖 Motor Cognitivo]
+        direction TB
+        MontarPrompt(Montar Prompt Estruturado)
+        LangChainMem[(Window Buffer Memory)]
+        Gemini{Ollama local: gemma4:12b-mlx}
+        ParseJSON(Parse JSON & Formatação)
+    end
+
+    %% Conexões entre os Subgráficos
+    ChatIn --> ExtrairDominio
+    User2 -.->|Envia Relatório RI| FormTrigger
+
+    ScrapingSite --> BrasilAPI
+    
+    SearxngEmpresa & SearxngSetor & SearxngMercado & SkipCVM --> CompilaPerfil
+    
+    ChunksCVM & ChunksManual --> EmbedData((Embed Dados)) --> QdrantFinance
+    
+    CompilaPerfil --> EmbedOllama
+    
+    QdrantCases & QdrantFinance -->|Contexto Relevante| MontarPrompt
+    
+    MontarPrompt --> LangChainMem --> Gemini --> ParseJSON
+    ParseJSON --> ChatOut
+
+    %% Estilos de nós para dar um visual clean
+    classDef default fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#334155;
+    classDef primary fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#ffffff;
+    classDef success fill:#10b981,stroke:#059669,stroke-width:2px,color:#ffffff;
+    classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#ffffff;
+    classDef database fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#ffffff;
+    classDef trigger fill:#ec4899,stroke:#db2777,stroke-width:2px,color:#ffffff;
+
+    class User,User2 trigger;
+    class ChatIn,ChatOut primary;
+    class Gemini,EmbedOllama,EmbedData success;
+    class QdrantCases,QdrantFinance database;
+    class MatchB3 warning;
+```
+
 ## Documentação
 
 - [`docs/genai-canvas.md`](docs/genai-canvas.md) — GenAI Canvas (transcrição do artefato original)
@@ -34,16 +133,10 @@ O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 | Camada        | Ferramenta                                              |
 |---------------|----------------------------------------------------------|
 | Orquestração  | N8N (workflow: research → RAG → LLM → resposta)         |
-| LLM           | **Temporariamente** Google Gemini (`models/gemini-2.5-flash`) via API — ver nota abaixo. Local originalmente: Ollama, `gemma4:12b-mlx` |
+| LLM           | Ollama, modelo local `gemma4:12b-mlx` |
 | Interface     | Chat nativo do N8N (node "Chat - Recebe Prompt")        |
 | Research      | SearXNG self-hosted + scraping do site do prospect + dados abertos da CVM (empresas B3) |
 | RAG           | Qdrant (vector store da base de cases + relatórios financeiros), via node do N8N |
-
-**Nota (2026-07-13):** a pedido do usuário, o LLM de classificação foi trocado de Ollama local para a
-API do Google Gemini "por enquanto" — o stack **deixa de ser 100% local** enquanto essa configuração
-estiver ativa, já que o perfil de pesquisa do prospect é enviado à API do Gemini. Para voltar a 100%
-local, troque a credencial/modelo de volta para o node "Ollama Chat Model" (ver
-[`n8n/workflows/README.md`](n8n/workflows/README.md)).
 
 **Fora do MVP (Fase 2):** transcrição de calls (Whisper), integração com CRM.
 
