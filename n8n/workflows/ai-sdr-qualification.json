@@ -4,20 +4,23 @@
   "nodes": [
     {
       "id": "8b67115f-58da-4ae0-b613-3c70fd481a99",
-      "name": "Webhook - Recebe Domínio",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
+      "name": "Chat - Recebe Prompt",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
       "position": [
         0,
         300
       ],
+      "webhookId": "a3bb7977-2867-45b6-b69a-fa18215c5db8",
       "parameters": {
-        "httpMethod": "POST",
-        "path": "ai-sdr",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "webhookId": "a3bb7977-2867-45b6-b69a-fa18215c5db8"
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "responseMode": "lastNode",
+          "title": "AI SDR - Qualificação de Leads",
+          "subtitle": "Digite o domínio do prospect (ex.: itau.com.br) e, se quiser, contexto extra."
+        }
+      }
     },
     {
       "id": "e163ba06-30b8-4ee3-b0c5-29e923e858e6",
@@ -31,7 +34,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst rawMessage = body.domain || body.message || body.dominio || '';\nconst match = String(rawMessage).match(/([a-z0-9-]+\\.)+[a-z]{2,}/i);\nconst dominio = match\n  ? match[0].toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '')\n  : String(rawMessage).trim();\n\nif (!dominio) {\n  throw new Error(\"Não foi possível identificar um domínio na mensagem recebida.\");\n}\n\nreturn [{ json: { dominio, url_base: `https://${dominio}` } }];"
+        "jsCode": "const input = $input.first().json;\n// Aceita tanto o node de Chat nativo do n8n (campos chatInput/sessionId)\n// quanto um corpo de webhook \"clássico\" (message/session_id), caso alguém\n// prefira integrar via HTTP em vez do painel de chat.\nconst body = input.body || input;\nconst rawMessage = body.chatInput || body.domain || body.message || body.dominio || '';\nconst sessionId = body.sessionId || body.session_id || body.chat_id || body.id || 'sem-sessao';\nconst match = String(rawMessage).match(/([a-z0-9-]+\\.)+[a-z]{2,}/i);\nconst dominio = match\n  ? match[0].toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '')\n  : String(rawMessage).trim();\n\nif (!dominio) {\n  throw new Error(\"Não foi possível identificar um domínio na mensagem recebida.\");\n}\n\n// O resto da mensagem (tudo que não é o domínio em si) costuma trazer\n// contexto valioso que o vendedor digitou junto (ex.: \"itau.com.br - prospect\n// quer automatizar atendimento do call center\"). Antes esse texto era\n// descartado por completo -- só o domínio seguia adiante no pipeline, e a\n// análise final nunca via essa descrição. Preservamos aqui para os nodes\n// seguintes usarem.\nconst contexto_usuario = String(rawMessage)\n  .replace(match ? match[0] : '', '')\n  .replace(/^[\\s\\-:,]+|[\\s\\-:,]+$/g, '')\n  .trim();\n\nreturn [{ json: { dominio, url_base: `https://${dominio}`, contexto_usuario, session_id: sessionId } }];"
       }
     },
     {
@@ -58,12 +61,61 @@
       }
     },
     {
+      "id": "f1a2b3c4-d5e6-4f70-8a91-1b2c3d4e5f60",
+      "name": "Detectar Setor e Montar Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const domainData = $('Extrair Domínio').first().json;\nconst siteHtml = $input.first().json.data || '';\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .toLowerCase();\n\n// Heurística simples (contagem de palavras-chave em português no texto do\n// site) para adivinhar o setor do prospect -- não é uma classificação\n// confiável por si só, serve apenas para direcionar a segunda busca do\n// SearXNG para tendências de IA no setor certo, em vez de uma busca\n// genérica demais para ajudar na estratégia.\nconst dicionarioSetores = {\n  'Bancário/Financeiro': ['banco', 'crédito', 'investimento', 'financeira', 'cartão de crédito', 'empréstimo', 'conta corrente'],\n  'Varejo/E-commerce': ['loja', 'varejo', 'e-commerce', 'ecommerce', 'carrinho de compras', 'frete grátis'],\n  'Saúde': ['hospital', 'saúde', 'clínica', 'paciente', 'plano de saúde', 'medicina'],\n  'Seguros': ['seguro', 'seguradora', 'sinistro', 'apólice'],\n  'Indústria/Manufatura': ['indústria', 'fábrica', 'manufatura', 'produção industrial', 'linha de produção'],\n  'Logística/Transporte': ['logística', 'transportadora', 'frete', 'rastreamento de entrega', 'transporte de cargas'],\n  'Educação': ['educação', 'escola', 'curso online', 'aluno', 'universidade'],\n  'Jurídico': ['advocacia', 'jurídico', 'contrato', 'escritório de advocacia'],\n  'Agronegócio': ['agronegócio', 'fazenda', 'commodities', 'grãos', 'safra'],\n  'Telecom': ['telecom', 'operadora', 'banda larga', 'plano de celular'],\n  'Tecnologia/Software': ['software', 'saas', 'plataforma digital', 'aplicativo', 'desenvolvedor'],\n};\n\nlet setorDetectado = 'Indeterminado';\nlet melhorContagem = 0;\nfor (const [setor, palavras] of Object.entries(dicionarioSetores)) {\n  const contagem = palavras.reduce((acc, palavra) => acc + (textoLimpo.split(palavra).length - 1), 0);\n  if (contagem > melhorContagem) {\n    melhorContagem = contagem;\n    setorDetectado = setor;\n  }\n}\n\nconst query_empresa = `${domainData.dominio} empresa notícias tecnologia inteligência artificial`;\nconst query_setor = setorDetectado !== 'Indeterminado'\n  ? `tendências de inteligência artificial e automação no setor de ${setorDetectado} Brasil`\n  : `tendências de inteligência artificial e automação para empresas Brasil`;\nconst query_mercado = `${domainData.dominio} concorrentes mercado posicionamento`;\n\nreturn [{ json: {\n  ...domainData,\n  setor_detectado_heuristica: setorDetectado,\n  query_empresa,\n  query_setor,\n  query_mercado,\n} }];"
+      }
+    },
+    {
       "id": "ecd95131-97a5-421c-b6c0-448ab84588f5",
-      "name": "Buscar no SearXNG",
+      "name": "Buscar no SearXNG (Empresa)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
+        880,
+        220
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Detectar Setor e Montar Queries').item.json.query_empresa }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "language",
+              "value": "pt-BR"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-e5f6-4a70-8b91-2c3d4e5f6a71",
+      "name": "Buscar no SearXNG (Setor)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
         300
       ],
       "parameters": {
@@ -74,7 +126,41 @@
           "parameters": [
             {
               "name": "q",
-              "value": "={{ $('Extrair Domínio').item.json.dominio + ' empresa notícias tecnologia inteligência artificial' }}"
+              "value": "={{ $('Detectar Setor e Montar Queries').item.json.query_setor }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "language",
+              "value": "pt-BR"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-f6a7-4b81-9c02-3d4e5f6a7b82",
+      "name": "Buscar no SearXNG (Mercado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        380
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Detectar Setor e Montar Queries').item.json.query_mercado }}"
             },
             {
               "name": "format",
@@ -97,13 +183,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
+        1120,
         300
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const domainData = $('Extrair Domínio').item.json;\nconst siteHtml = ($('Pesquisar Site do Prospect').item.json.data) || '';\nconst searxData = $json;\n// Limitado propositalmente (3 resultados, ~120 chars cada) para manter o\n// prompt final curto o suficiente para o Gemma local responder em tempo\n// razoavel -- com o schema completo, o modelo e sensivel ao tamanho do prompt.\nconst searxResults = (searxData.results || []).slice(0, 3);\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 1200);\n\nconst resumoBusca = searxResults\n  .map((r, i) => `${i + 1}. ${r.title} — ${(r.content || '').slice(0, 150)}`)\n  .join('\\n');\n\nconst perfil_pesquisa = [\n  `Domínio: ${domainData.dominio}`,\n  `Conteúdo do site institucional (trecho): ${textoLimpo || 'não foi possível acessar o site.'}`,\n  `Resultados de busca externa (SearXNG):\\n${resumoBusca || 'nenhum resultado relevante encontrado.'}`,\n].join('\\n\\n');\n\nreturn [{ json: { dominio: domainData.dominio, perfil_pesquisa } }];"
+        "jsCode": "const domainData = $('Extrair Domínio').first().json;\nconst setorData = $('Detectar Setor e Montar Queries').first().json;\nconst statusFinanceiro = $('Finalizar Status Financeiro').first().json;\nconst siteHtml = ($('Pesquisar Site do Prospect').first().json.data) || '';\n\n// \"Deep research\" leve: em vez de uma única busca genérica, rodamos 3\n// buscas com ângulos diferentes -- notícias da empresa, tendências de IA\n// no setor dela (ajuda a validar/calibrar o direcionamento de estratégia,\n// não só a classificação) e concorrência/posicionamento de mercado.\n// Resultados limitados propositalmente (3+3+2, ~120-150 chars cada) para\n// não estourar o tamanho do prompt -- o Gemma local é sensível a isso.\nconst resultadosEmpresa = ($('Buscar no SearXNG (Empresa)').first().json.results || []).slice(0, 3);\nconst resultadosSetor = ($('Buscar no SearXNG (Setor)').first().json.results || []).slice(0, 3);\nconst resultadosMercado = ($('Buscar no SearXNG (Mercado)').first().json.results || []).slice(0, 2);\n\nconst textoLimpo = String(siteHtml)\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 1200);\n\nfunction resumir(resultados) {\n  return resultados\n    .map((r, i) => `${i + 1}. ${r.title} — ${(r.content || '').slice(0, 150)}`)\n    .join('\\n');\n}\n\nconst perfil_pesquisa = [\n  `Domínio: ${domainData.dominio}`,\n  `Conteúdo do site institucional (trecho): ${textoLimpo || 'não foi possível acessar o site.'}`,\n  `Notícias e sinais sobre a empresa (SearXNG):\\n${resumir(resultadosEmpresa) || 'nenhum resultado relevante encontrado.'}`,\n  `Tendências de IA no setor \"${setorData.setor_detectado_heuristica}\" (SearXNG -- setor detectado por heurística a partir do site, trate com ceticismo se parecer errado):\\n${resumir(resultadosSetor) || 'nenhum resultado relevante encontrado.'}`,\n  `Concorrência e posicionamento de mercado (SearXNG):\\n${resumir(resultadosMercado) || 'nenhum resultado relevante encontrado.'}`,\n  `Situação na bolsa de valores (B3): ${statusFinanceiro.contexto_financeiro_status}`,\n].join('\\n\\n');\n\nreturn [{ json: {\n  dominio: domainData.dominio,\n  perfil_pesquisa,\n  contexto_usuario: domainData.contexto_usuario,\n  session_id: domainData.session_id,\n  listada_b3: statusFinanceiro.listada_b3,\n  ticker: statusFinanceiro.ticker,\n} }];"
       }
     },
     {
@@ -160,28 +246,57 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const perfil = $('Compilar Perfil de Pesquisa').item.json;\nconst qdrantResp = $json;\nconst points = (qdrantResp.result && qdrantResp.result.points) || [];\n\nconst casesTexto = points.map((p, i) => {\n  const c = p.payload;\n  return `Case ${i + 1} (similaridade ${p.score.toFixed(2)}): \"${c.titulo}\"\\n`\n    + `Classificação correta: ${c.classificacao_correta}\\n`\n    + `Sinais de diagnóstico: ${(c.sinais_diagnostico || []).slice(0, 2).join(' | ')}\\n`\n    + `Abordagem recomendada: ${c.abordagem_recomendada}`;\n}).join('\\n\\n');\n\n// O parametro \"format\" da API do Ollama (JSON Schema) e ignorado por este\n// modelo local (gemma4:12b-mlx via MLX nao aplica constrained decoding) --\n// confirmado em teste manual: mesmo um schema trivial voltou embrulhado em\n// ```json ... ```. Por isso o formato esperado precisa estar no PROPRIO\n// texto do prompt, com um exemplo concreto para o modelo imitar, e o\n// parsing final (node \"Montar Resposta Final\") precisa tolerar variacoes.\nconst exemploSaida = {\n  dominio: perfil.dominio,\n  perfil_empresa: {\n    nome: \"Nome da empresa\",\n    setor: \"Setor de atuação\",\n    porte_estimado: \"Grande | Média | Pequena | Indeterminado\",\n    resumo: \"resumo de 2-3 frases\",\n    sinais_maturidade_digital: [\"sinal 1\", \"sinal 2\"]\n  },\n  classificacao: {\n    tipo: \"GenAI real | RPA | BI | Automação clássica | Híbrido\",\n    confianca: \"Alta | Média | Baixa\",\n    justificativa: \"explicação baseada nos sinais e nos cases similares\"\n  },\n  maturidade_ia_prospect: {\n    nivel: \"Inicial | Em desenvolvimento | Avançado | Indeterminado\",\n    justificativa: \"...\"\n  },\n  direcionamento_estrategia: {\n    recomendacao: \"Manter abordagem proposta pelo prospect | Propor shift de estratégia | Aprofundar discovery antes de avançar\",\n    justificativa: \"...\"\n  },\n  perguntas_discovery: [\"pergunta 1\", \"pergunta 2\", \"pergunta 3\"]\n};\n\nconst prompt = `Você é um analista de pré-vendas de uma consultoria especializada em IA. Sua tarefa é qualificar um prospect a partir da pesquisa abaixo, decidindo se a demanda dele é GenAI real, RPA, BI ou Automação clássica.\n\nPESQUISA SOBRE O PROSPECT:\n${perfil.perfil_pesquisa}\n\nCASES SIMILARES DA CONSULTORIA (use como referência de diagnóstico, não copie literalmente):\n${casesTexto || 'Nenhum case similar encontrado.'}\n\nResponda APENAS com um objeto JSON no formato do exemplo abaixo, preenchido com sua análise (troque os valores de exemplo pelos reais; os campos com \"|\" indicam as únicas opções válidas, escolha uma). Não escreva nada antes ou depois do JSON, e não use blocos de código (sem \\`\\`\\`).\n\n${JSON.stringify(exemploSaida, null, 2)}\n\nSeja honesto: se a pesquisa não trouxe sinal suficiente, use \"confianca\": \"Baixa\" e diga isso na justificativa.`;\n\nconst cases_relevantes = points.map((p) => ({\n  titulo: p.payload.titulo,\n  classificacao: p.payload.classificacao_correta,\n  similaridade: Math.round(p.score * 100) / 100,\n  licao_aplicavel: p.payload.resultado_licao,\n}));\n\n// IMPORTANTE: o corpo da requisicao ao Ollama e montado AQUI (em JS real),\n// nao na expressao ={{ }} do node HTTP Request seguinte. O parser de\n// expressoes do n8n usa correspondencia nao-gulosa e para no PRIMEIRO\n// '}}' que encontrar no texto do template - como o JSON Schema abaixo tem\n// varias chaves de fechamento aninhadas ('}}' aparece dezenas de vezes),\n// embutir isso direto numa expressao ={{ ... }} trunca o JSON no meio.\n// Construindo a string aqui e so referenciando '$json.body_llm_request'\n// no node seguinte, a expressao la fica trivial (um unico '}}' no final).\nconst outputSchema = {\"type\": \"object\", \"properties\": {\"dominio\": {\"type\": \"string\"}, \"perfil_empresa\": {\"type\": \"object\", \"properties\": {\"nome\": {\"type\": \"string\"}, \"setor\": {\"type\": \"string\"}, \"porte_estimado\": {\"type\": \"string\", \"enum\": [\"Grande\", \"Média\", \"Pequena\", \"Indeterminado\"]}, \"resumo\": {\"type\": \"string\"}, \"sinais_maturidade_digital\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"nome\", \"setor\", \"porte_estimado\", \"resumo\", \"sinais_maturidade_digital\"]}, \"classificacao\": {\"type\": \"object\", \"properties\": {\"tipo\": {\"type\": \"string\", \"enum\": [\"GenAI real\", \"RPA\", \"BI\", \"Automação clássica\", \"Híbrido\"]}, \"confianca\": {\"type\": \"string\", \"enum\": [\"Alta\", \"Média\", \"Baixa\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"tipo\", \"confianca\", \"justificativa\"]}, \"maturidade_ia_prospect\": {\"type\": \"object\", \"properties\": {\"nivel\": {\"type\": \"string\", \"enum\": [\"Inicial\", \"Em desenvolvimento\", \"Avançado\", \"Indeterminado\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"nivel\", \"justificativa\"]}, \"direcionamento_estrategia\": {\"type\": \"object\", \"properties\": {\"recomendacao\": {\"type\": \"string\", \"enum\": [\"Manter abordagem proposta pelo prospect\", \"Propor shift de estratégia\", \"Aprofundar discovery antes de avançar\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"recomendacao\", \"justificativa\"]}, \"perguntas_discovery\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 3, \"maxItems\": 5}}, \"required\": [\"dominio\", \"perfil_empresa\", \"classificacao\", \"maturidade_ia_prospect\", \"direcionamento_estrategia\", \"perguntas_discovery\"]};\n\nconst body_llm_request = JSON.stringify({\n  model: 'gemma4:12b-mlx',\n  prompt,\n  format: outputSchema,\n  stream: false,\n});\n\nreturn [{ json: { dominio: perfil.dominio, prompt, cases_relevantes, body_llm_request } }];"
+        "jsCode": "const perfil = $('Compilar Perfil de Pesquisa').first().json;\n// O input direto deste node agora vem de um Merge (\"Merge Cases + Financeiro\")\n// que combina a busca de cases (RAG da consultoria) com a busca de trechos\n// de relatórios financeiros do próprio prospect -- por isso referenciamos os\n// dois nodes de origem pelo nome em vez de usar $json diretamente (que ficaria\n// ambíguo sobre qual dos dois resultados é).\nconst qdrantResp = $('Buscar Cases Similares (Qdrant)').first().json;\nconst financeiroResp = $('Buscar Trechos de Relatórios (Qdrant)').first().json;\nconst points = (qdrantResp.result && qdrantResp.result.points) || [];\nconst pontosFinanceiros = (financeiroResp.result && financeiroResp.result.points) || [];\n\nconst casesTexto = points.map((p, i) => {\n  const c = p.payload;\n  return `Case ${i + 1} (similaridade ${p.score.toFixed(2)}): \"${c.titulo}\"\\n`\n    + `Classificação correta: ${c.classificacao_correta}\\n`\n    + `Sinais de diagnóstico: ${(c.sinais_diagnostico || []).slice(0, 2).join(' | ')}\\n`\n    + `Abordagem recomendada: ${c.abordagem_recomendada}`;\n}).join('\\n\\n');\n\n// Dados financeiros oficiais da CVM (Demonstração do Resultado Consolidado)\n// do PRÓPRIO prospect -- não são cases da consultoria. Vieram do cadastro\n// público da CVM (dados.cvm.gov.br) + upload para a coleção\n// \"ai_sdr_relatorios_financeiros\" no Qdrant, só para empresas identificadas\n// como negociadas na B3.\nconst trechosFinanceirosTexto = pontosFinanceiros.map((p, i) => {\n  const c = p.payload;\n  return `Trecho ${i + 1} (similaridade ${p.score.toFixed(2)}) -- ${c.titulo_documento || c.url || 'relatório'}:\\n${c.chunk_texto}`;\n}).join('\\n\\n');\n\n// O parametro \"format\" da API do Ollama (JSON Schema) e ignorado por este\n// modelo local (gemma4:12b-mlx via MLX nao aplica constrained decoding) --\n// confirmado em teste manual: mesmo um schema trivial voltou embrulhado em\n// ```json ... ```. Por isso o formato esperado precisa estar no PROPRIO\n// texto do prompt, com um exemplo concreto para o modelo imitar, e o\n// parsing final (node \"Montar Resposta Final\") precisa tolerar variacoes.\nconst exemploSaida = {\n  dominio: perfil.dominio,\n  perfil_empresa: {\n    nome: \"Nome da empresa\",\n    setor: \"Setor de atuação\",\n    porte_estimado: \"Grande | Média | Pequena | Indeterminado\",\n    resumo: \"resumo de 2-3 frases\",\n    sinais_maturidade_digital: [\"sinal 1\", \"sinal 2\"]\n  },\n  classificacao: {\n    tipo: \"GenAI real | RPA | BI | Automação clássica | Híbrido\",\n    confianca: \"Alta | Média | Baixa\",\n    justificativa: \"explicação baseada nos sinais e nos cases similares\"\n  },\n  maturidade_ia_prospect: {\n    nivel: \"Inicial | Em desenvolvimento | Avançado | Indeterminado\",\n    justificativa: \"...\"\n  },\n  direcionamento_estrategia: {\n    recomendacao: \"Manter abordagem proposta pelo prospect | Propor shift de estratégia | Aprofundar discovery antes de avançar\",\n    justificativa: \"...\"\n  },\n  perguntas_discovery: [\"pergunta 1\", \"pergunta 2\", \"pergunta 3\"]\n};\n\nconst contextoVendedor = perfil.contexto_usuario\n  ? `CONTEXTO INFORMADO PELO VENDEDOR (isto veio direto de quem está qualificando o lead -- leve em conta na sua análise e não ignore):\\n${perfil.contexto_usuario}\\n\\n`\n  : '';\n\nconst prompt = `Você é um analista de pré-vendas de uma consultoria especializada em IA. Sua tarefa é qualificar um prospect a partir da pesquisa abaixo, decidindo se a demanda dele é GenAI real, RPA, BI ou Automação clássica. A pesquisa inclui não só o site do prospect, mas também notícias sobre a empresa, tendências de IA no setor dela e concorrência/posicionamento de mercado -- use esses sinais de setor e mercado especialmente para embasar o campo \"direcionamento_estrategia\" e as \"perguntas_discovery\", não baseie a recomendação só no site institucional. Se a empresa for negociada na B3, a pesquisa também inclui dados financeiros oficiais da CVM (receita, custos, resultado) dos últimos períodos -- priorize essas informações (são dados financeiros oficiais e obrigatórios por lei) na classificação, na maturidade em IA e no direcionamento de estratégia, sempre que estiverem disponíveis.\n\n${contextoVendedor}PESQUISA SOBRE O PROSPECT:\n${perfil.perfil_pesquisa}\n\nCASES SIMILARES DA CONSULTORIA (use como referência de diagnóstico, não copie literalmente):\n${casesTexto || 'Nenhum case similar encontrado.'}\n\nDADOS FINANCEIROS OFICIAIS DA CVM DO PRÓPRIO PROSPECT (Demonstração do Resultado Consolidado; só disponível para empresas negociadas na B3; use para embasar classificação, maturidade e estratégia quando presente):\n${trechosFinanceirosTexto || 'Nenhum relatório de RI/mercado disponível para esta empresa.'}\n\nResponda APENAS com um objeto JSON no formato do exemplo abaixo, preenchido com sua análise (troque os valores de exemplo pelos reais; os campos com \"|\" indicam as únicas opções válidas, escolha uma). Não escreva nada antes ou depois do JSON, e não use blocos de código (sem \\`\\`\\`).\n\n${JSON.stringify(exemploSaida, null, 2)}\n\nSeja honesto: se a pesquisa não trouxe sinal suficiente, use \"confianca\": \"Baixa\" e diga isso na justificativa.`;\n\nconst cases_relevantes = points.map((p) => ({\n  titulo: p.payload.titulo,\n  classificacao: p.payload.classificacao_correta,\n  similaridade: Math.round(p.score * 100) / 100,\n  licao_aplicavel: p.payload.resultado_licao,\n}));\n\n// IMPORTANTE: o corpo da requisicao ao Ollama e montado AQUI (em JS real),\n// nao na expressao ={{ }} do node HTTP Request seguinte. O parser de\n// expressoes do n8n usa correspondencia nao-gulosa e para no PRIMEIRO\n// '}}' que encontrar no texto do template - como o JSON Schema abaixo tem\n// varias chaves de fechamento aninhadas ('}}' aparece dezenas de vezes),\n// embutir isso direto numa expressao ={{ ... }} trunca o JSON no meio.\n// Construindo a string aqui e so referenciando '$json.body_llm_request'\n// no node seguinte, a expressao la fica trivial (um unico '}}' no final).\nconst outputSchema = {\"type\": \"object\", \"properties\": {\"dominio\": {\"type\": \"string\"}, \"perfil_empresa\": {\"type\": \"object\", \"properties\": {\"nome\": {\"type\": \"string\"}, \"setor\": {\"type\": \"string\"}, \"porte_estimado\": {\"type\": \"string\", \"enum\": [\"Grande\", \"Média\", \"Pequena\", \"Indeterminado\"]}, \"resumo\": {\"type\": \"string\"}, \"sinais_maturidade_digital\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"nome\", \"setor\", \"porte_estimado\", \"resumo\", \"sinais_maturidade_digital\"]}, \"classificacao\": {\"type\": \"object\", \"properties\": {\"tipo\": {\"type\": \"string\", \"enum\": [\"GenAI real\", \"RPA\", \"BI\", \"Automação clássica\", \"Híbrido\"]}, \"confianca\": {\"type\": \"string\", \"enum\": [\"Alta\", \"Média\", \"Baixa\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"tipo\", \"confianca\", \"justificativa\"]}, \"maturidade_ia_prospect\": {\"type\": \"object\", \"properties\": {\"nivel\": {\"type\": \"string\", \"enum\": [\"Inicial\", \"Em desenvolvimento\", \"Avançado\", \"Indeterminado\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"nivel\", \"justificativa\"]}, \"direcionamento_estrategia\": {\"type\": \"object\", \"properties\": {\"recomendacao\": {\"type\": \"string\", \"enum\": [\"Manter abordagem proposta pelo prospect\", \"Propor shift de estratégia\", \"Aprofundar discovery antes de avançar\"]}, \"justificativa\": {\"type\": \"string\"}}, \"required\": [\"recomendacao\", \"justificativa\"]}, \"perguntas_discovery\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"minItems\": 3, \"maxItems\": 5}}, \"required\": [\"dominio\", \"perfil_empresa\", \"classificacao\", \"maturidade_ia_prospect\", \"direcionamento_estrategia\", \"perguntas_discovery\"]};\n\nconst body_llm_request = JSON.stringify({\n  model: 'gemma4:12b-mlx',\n  prompt,\n  format: outputSchema,\n  stream: false,\n});\n\nreturn [{ json: { dominio: perfil.dominio, prompt, cases_relevantes, body_llm_request, session_id: perfil.session_id } }];"
       }
     },
     {
       "id": "2ccb23f7-f48b-4eee-a0db-dae6422d4c92",
-      "name": "Classificar com Gemma (Ollama)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Classificar com Gemini (Chain)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
       "position": [
         1920,
         300
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://host.docker.internal:11434/api/generate",
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.body_llm_request }}",
-        "options": {
-          "timeout": 600000
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "d4f1a6c1-2b7a-4c9e-9a1d-7e6f5c4b3a20",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1860,
+        520
+      ],
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nAGsqvwXlpDsbCET",
+          "name": "Google Gemini(PaLM) Api account"
         }
+      }
+    },
+    {
+      "id": "e5a2b7d2-3c8b-4d0f-8b2e-8f7d6e5c4b31",
+      "name": "Memória por Sessão",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        520
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Montar Prompt').item.json.session_id }}",
+        "contextWindowLength": 6
       }
     },
     {
@@ -196,27 +311,722 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const montado = $('Montar Prompt').item.json;\nconst ollamaResp = $json;\n\n// O modelo local nem sempre respeita \"responda so o JSON\": as vezes embrulha\n// em ```json ... ``` ou acrescenta texto antes/depois. Limpamos isso antes\n// de tentar o parse, e so entao extraimos o primeiro objeto JSON encontrado.\nfunction extrairJson(texto) {\n  let limpo = String(texto || '')\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  const inicio = limpo.indexOf('{');\n  const fim = limpo.lastIndexOf('}');\n  if (inicio === -1 || fim === -1 || fim < inicio) return null;\n  try {\n    return JSON.parse(limpo.slice(inicio, fim + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nconst parsed = extrairJson(ollamaResp.response);\n\nif (!parsed) {\n  return [{ json: {\n    markdown: `⚠️ Não consegui interpretar a resposta do modelo para o domínio **${montado.dominio}**. Tente novamente.\\n\\nResposta bruta:\\n${ollamaResp.response || ''}`\n  } }];\n}\n\nconst disclaimer = 'Esta é uma recomendação gerada por IA para apoiar o direcionamento comercial. A decisão final sobre estratégia e discovery é do vendedor.';\n\nconst casesTexto = (montado.cases_relevantes || []).map((c, i) =>\n  `${i + 1}. **${c.titulo}** _(${c.classificacao}, similaridade ${c.similaridade})_\\n   ${c.licao_aplicavel}`\n).join('\\n');\n\n// Acesso tolerante: o modelo local pode nao preencher 100% da estrutura\n// esperada. Preferimos mostrar \"n/d\" a quebrar a resposta inteira.\nconst pe = parsed.perfil_empresa || {};\nconst cl = parsed.classificacao || {};\nconst mat = parsed.maturidade_ia_prospect || {};\nconst dir = parsed.direcionamento_estrategia || {};\nconst perguntas = Array.isArray(parsed.perguntas_discovery) ? parsed.perguntas_discovery : [];\n\nconst markdown = `## Qualificação — ${parsed.dominio || montado.dominio}\n\n**Perfil da empresa:** ${pe.resumo || 'n/d'}\n- Setor: ${pe.setor || 'n/d'}\n- Porte estimado: ${pe.porte_estimado || 'n/d'}\n- Sinais de maturidade digital: ${(pe.sinais_maturidade_digital || []).join('; ') || 'n/d'}\n\n**Classificação:** ${cl.tipo || 'n/d'} _(confiança: ${cl.confianca || 'n/d'})_\n${cl.justificativa || ''}\n\n**Maturidade em IA do prospect:** ${mat.nivel || 'n/d'}\n${mat.justificativa || ''}\n\n**Direcionamento sugerido:** ${dir.recomendacao || 'n/d'}\n${dir.justificativa || ''}\n\n**Perguntas de discovery sugeridas:**\n${perguntas.length ? perguntas.map((q) => `- ${q}`).join('\\n') : 'n/d'}\n\n**Cases relevantes da consultoria:**\n${casesTexto || '_nenhum case suficientemente similar encontrado._'}\n\n---\n_${disclaimer}_`;\n\nreturn [{ json: { markdown } }];"
+        "jsCode": "const montado = $('Montar Prompt').first().json;\n// O node \"Classificar com Gemma (Chain)\" (n8n-nodes-langchain.chainLlm) devolve\n// o texto gerado no campo \"text\" -- antes, com a chamada HTTP crua ao Ollama,\n// o campo era \"response\". Mantemos os dois por segurança (ex.: se alguém\n// reverter para o node HTTP antigo).\nconst textoGerado = $json.text ?? $json.response ?? '';\n\n// O modelo local nem sempre respeita \"responda so o JSON\": as vezes embrulha\n// em ```json ... ``` ou acrescenta texto antes/depois. Limpamos isso antes\n// de tentar o parse, e so entao extraimos o primeiro objeto JSON encontrado.\nfunction extrairJson(texto) {\n  let limpo = String(texto || '')\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n  const inicio = limpo.indexOf('{');\n  const fim = limpo.lastIndexOf('}');\n  if (inicio === -1 || fim === -1 || fim < inicio) return null;\n  try {\n    return JSON.parse(limpo.slice(inicio, fim + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nconst parsed = extrairJson(textoGerado);\n\nif (!parsed) {\n  const aviso = `⚠️ Não consegui interpretar a resposta do modelo para o domínio **${montado.dominio}**. Tente novamente.\\n\\nResposta bruta:\\n${textoGerado}`;\n  return [{ json: { markdown: aviso, output: aviso } }];\n}\n\nconst disclaimer = 'Esta é uma recomendação gerada por IA para apoiar o direcionamento comercial. A decisão final sobre estratégia e discovery é do vendedor.';\n\nconst casesTexto = (montado.cases_relevantes || []).map((c, i) =>\n  `${i + 1}. **${c.titulo}** _(${c.classificacao}, similaridade ${c.similaridade})_\\n   ${c.licao_aplicavel}`\n).join('\\n');\n\n// Acesso tolerante: o modelo local pode nao preencher 100% da estrutura\n// esperada. Preferimos mostrar \"n/d\" a quebrar a resposta inteira.\nconst pe = parsed.perfil_empresa || {};\nconst cl = parsed.classificacao || {};\nconst mat = parsed.maturidade_ia_prospect || {};\nconst dir = parsed.direcionamento_estrategia || {};\nconst perguntas = Array.isArray(parsed.perguntas_discovery) ? parsed.perguntas_discovery : [];\n\nconst markdown = `## Qualificação — ${parsed.dominio || montado.dominio}\n\n**Perfil da empresa:** ${pe.resumo || 'n/d'}\n- Setor: ${pe.setor || 'n/d'}\n- Porte estimado: ${pe.porte_estimado || 'n/d'}\n- Sinais de maturidade digital: ${(pe.sinais_maturidade_digital || []).join('; ') || 'n/d'}\n\n**Classificação:** ${cl.tipo || 'n/d'} _(confiança: ${cl.confianca || 'n/d'})_\n${cl.justificativa || ''}\n\n**Maturidade em IA do prospect:** ${mat.nivel || 'n/d'}\n${mat.justificativa || ''}\n\n**Direcionamento sugerido:** ${dir.recomendacao || 'n/d'}\n${dir.justificativa || ''}\n\n**Perguntas de discovery sugeridas:**\n${perguntas.length ? perguntas.map((q) => `- ${q}`).join('\\n') : 'n/d'}\n\n**Cases relevantes da consultoria:**\n${casesTexto || '_nenhum case suficientemente similar encontrado._'}\n\n---\n_${disclaimer}_`;\n\n// \"output\" e o campo que o node de Chat nativo do n8n (Chat Trigger, modo\n// \"lastNode\") usa para exibir a resposta no painel de chat. Mantemos\n// \"markdown\" tambem por compatibilidade com quem ainda integrar via webhook.\nreturn [{ json: { markdown, output: markdown } }];"
       }
     },
     {
-      "id": "b7b94025-0bf0-4d7a-9c83-c7d2d548b144",
-      "name": "Responder ao Open WebUI",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
+      "id": "fa10a001-0000-4000-8000-000000000001",
+      "name": "Extrair Nome da Empresa e CNPJ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        2400,
-        300
+        480,
+        520
       ],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { response: $json.markdown } }}",
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const domainData = $('Extrair Domínio').first().json;\nconst siteHtml = String($input.first().json.data || '');\n\nconst matchTitle = siteHtml.match(/<title[^>]*>([^<]*)<\\/title>/i);\nlet nomeProvavel = matchTitle ? matchTitle[1] : '';\nnomeProvavel = nomeProvavel\n  .replace(/&amp;/g, '&')\n  .replace(/\\s*[-|–].*(home|in[ií]cio|site oficial).*$/i, '')\n  .replace(/\\s+/g, ' ')\n  .trim();\nif (!nomeProvavel) {\n  // Fallback: usa o próprio domínio (sem TLD) como aproximação do nome.\n  nomeProvavel = domainData.dominio.split('.')[0];\n}\n\n// Busca best-effort por um CNPJ no texto do site (ex.: rodapé \"CNPJ:\n// XX.XXX.XXX/0001-XX\"). Usado a seguir para consultar a BrasilAPI e obter a\n// razão social oficial, que costuma casar melhor com o nome usado na B3 do\n// que o nome de marketing do <title> -- mas pode não ser encontrado (scraping\n// simples, sem JS rendering, mesma limitação já documentada no README).\nconst matchCnpj = siteHtml.match(/(\\d{2}\\.?\\d{3}\\.?\\d{3}\\/?\\d{4}-?\\d{2})/);\nconst cnpjEncontrado = matchCnpj ? matchCnpj[1].replace(/[^\\d]/g, '') : '';\n\nreturn [{ json: {\n  ...domainData,\n  nome_provavel: nomeProvavel,\n  cnpj_encontrado: cnpjEncontrado,\n} }];"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000002",
+      "name": "Consultar CNPJ (BrasilAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://brasilapi.com.br/api/cnpj/v1/' + ($json.cnpj_encontrado || '00000000000000') }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000003",
+      "name": "Buscar Tickers B3 (brapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://brapi.dev/api/quote/list",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000004",
+      "name": "Identificar Empresa Listada (B3)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const nomeData = $('Extrair Nome da Empresa e CNPJ').first().json;\nconst cnpjResp = $('Consultar CNPJ (BrasilAPI)').first().json;\nconst b3Data = $json; // Buscar Tickers B3 (brapi) -- input direto deste node\nconst b3Stocks = b3Data.stocks || [];\n\n// Normalização tosca: maiúsculas, sem acento, remove sufixos societários\n// comuns -- para comparar heuristicamente nomes de marketing/razão social\n// com o nome oficial listado na B3. Isso é best-effort: nomes fantasia muito\n// diferentes da razão social (ex. apelidos de mercado) podem não bater.\nfunction normalizar(txt) {\n  return String(txt || '')\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .toUpperCase()\n    .replace(/\\b(S\\.?A\\.?|SA|LTDA|HOLDING|HOLDINGS|LTD|INC|CORP|CIA|COMPANHIA|GROUP|GRUPO|CO)\\b\\.?/g, '')\n    .replace(/[^A-Z0-9 ]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\n// Prioriza a razão social oficial (BrasilAPI/Receita Federal), quando\n// disponível, sobre o nome de marketing extraído do <title> do site --\n// costuma casar melhor com o nome oficial usado na listagem da B3.\nconst razaoSocial = cnpjResp && cnpjResp.razao_social ? cnpjResp.razao_social : '';\nconst nomeParaComparar = razaoSocial || nomeData.nome_provavel;\nconst nomeNormalizado = normalizar(nomeParaComparar);\n\n// BUG #1 (achado ao vivo, airbnb.com): comparar por substring bruta (\"XP\n// INC.\" normaliza para só \"XP\" depois de remover o sufixo \"INC\", e \"XP\"\n// aparece como substring dentro de \"EXPERIENCES\") dá falso positivo.\n// BUG #2 (achado ao vivo, weg.net, ao tentar corrigir o #1 com um tamanho\n// mínimo de 4 caracteres): isso também bloqueia nomes curtos LEGÍTIMOS, como\n// \"WEG\" (3 letras) -- empresas brasileiras com nome curto são comuns (WEG,\n// CSN, GOL, JBS, CVC...).\n//\n// Fix correto: comparar por TOKEN (palavra inteira), não por substring. \"XP\"\n// não bate com o token \"EXPERIENCES\" (são palavras diferentes), mas \"WEG\"\n// bate com o token \"WEG\" (é a mesma palavra). Isso resolve os dois casos ao\n// mesmo tempo, sem precisar de um limite arbitrário de tamanho.\nfunction tokens(txt) {\n  return normalizar(txt).split(' ').filter(Boolean);\n}\n\nconst tokensBuscado = tokens(nomeParaComparar);\nconst tokensBuscadoSet = new Set(tokensBuscado);\n\nlet matchB3 = null;\nif (tokensBuscado.length > 0) {\n  for (const stock of b3Stocks) {\n    const tokensCandidato = tokens(stock.name);\n    if (tokensCandidato.length === 0) continue;\n    const tokensCandidatoSet = new Set(tokensCandidato);\n    // Todo token do candidato aparece (como palavra inteira) no nome\n    // buscado, ou todo token do nome buscado aparece no candidato -- ou\n    // seja, um nome é um subconjunto de palavras do outro.\n    const candidatoDentroDoBuscado = tokensCandidato.every((t) => tokensBuscadoSet.has(t));\n    const buscadoDentroDoCandidato = tokensBuscado.every((t) => tokensCandidatoSet.has(t));\n    if (candidatoDentroDoBuscado || buscadoDentroDoCandidato) {\n      matchB3 = stock;\n      break;\n    }\n  }\n}\n\nreturn [{ json: {\n  ...nomeData,\n  razao_social_brasilapi: razaoSocial || null,\n  listada_b3: !!matchB3,\n  ticker: matchB3 ? matchB3.stock : null,\n  nome_correspondente: matchB3 ? matchB3.name : null,\n} }];"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000005",
+      "name": "Garantir Collection Financeira Existe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        520
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vectors: { size: 768, distance: 'Cosine' } }) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000006",
+      "name": "IF Empresa Listada na B3?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        520
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $('Identificar Empresa Listada (B3)').item.json.listada_b3 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
         "options": {}
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000007",
+      "name": "Sem Documentos Financeiros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const d = $('Identificar Empresa Listada (B3)').first().json;\nreturn [{ json: { ...d, tem_documentos: false } }];"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-00000000000c",
+      "name": "Limpar e Dividir em Chunks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        620
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const detectado = $('Identificar CD_CVM').first().json;\nconst cdCvmAlvo = detectado.cd_cvm;\nconst items = $input.all(); // até 2 items (ano atual + ano anterior), cada um com os CSVs descompactados do ZIP da CVM\n\nasync function extrairCsvDRE(item, itemIndex) {\n  const binarios = item.binary || {};\n  for (const chave of Object.keys(binarios)) {\n    const bin = binarios[chave];\n    if (bin && bin.fileName && /DRE_con.*\\.csv$/i.test(bin.fileName)) {\n      // NÃO usar Buffer.from(bin.data, 'base64') diretamente -- bin.data só\n      // é base64 inline quando o n8n está no modo de armazenamento binário\n      // \"memory\". Para arquivos grandes como estes (o zip da CVM descompacta\n      // para 240+ MB), a instância pode estar (ou passar a estar) em modo\n      // filesystem/S3, onde bin.data é só um ID de referência -- decodificar\n      // isso como base64 não dá erro, só produz lixo silenciosamente (foi\n      // exatamente o que aconteceu: 0 chunks encontrados apesar dos dados\n      // reais existirem). O helper abaixo funciona em qualquer modo.\n      const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, chave);\n      return buffer.toString('latin1');\n    }\n  }\n  return null;\n}\n\nfunction hashSimples(str) {\n  let hash = 5381;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) + hash) + str.charCodeAt(i);\n    hash = hash & hash;\n  }\n  return Math.abs(hash);\n}\n\nconst TAMANHO_CHUNK = 1000;\n\n// Junta as linhas do DRE Consolidado (Demonstração do Resultado -- dados\n// oficiais da CVM, obrigatórios por lei para toda companhia aberta) dos\n// arquivos baixados (ano atual + ano anterior), filtra só a empresa\n// (CD_CVM) e só a versão \"ÚLTIMO\" de cada linha (a própria CVM já inclui a\n// coluna \"PENÚLTIMO\" com o comparativo do ano anterior em cada arquivo --\n// pegar as duas duplicaria os mesmos números), agrupa por período de\n// referência (DT_REFER) e mantém os 3 mais recentes.\nconst periodos = {};\n\nif (cdCvmAlvo) {\n  for (const item of items) {\n    const csvTexto = await extrairCsvDRE.call(this, item, items.indexOf(item));\n    if (!csvTexto) continue;\n\n    const linhas = csvTexto.split('\\n');\n    const header = (linhas[0] || '').split(';').map((h) => h.trim());\n    const idx = {\n      dtRefer: header.indexOf('DT_REFER'),\n      denom: header.indexOf('DENOM_CIA'),\n      cdCvm: header.indexOf('CD_CVM'),\n      ordemExerc: header.indexOf('ORDEM_EXERC'),\n      cdConta: header.indexOf('CD_CONTA'),\n      dsConta: header.indexOf('DS_CONTA'),\n      vlConta: header.indexOf('VL_CONTA'),\n    };\n    if (idx.vlConta === -1) continue; // arquivo não tem o formato esperado\n\n    for (let i = 1; i < linhas.length; i++) {\n      const linha = linhas[i];\n      if (!linha) continue;\n      const campos = linha.split(';');\n      if (campos.length <= idx.vlConta) continue;\n      if ((campos[idx.cdCvm] || '').trim() !== cdCvmAlvo) continue;\n      if ((campos[idx.ordemExerc] || '').trim() !== 'ÚLTIMO') continue;\n\n      const dtRefer = campos[idx.dtRefer];\n      if (!periodos[dtRefer]) {\n        periodos[dtRefer] = { denom: campos[idx.denom], linhas: [] };\n      }\n      periodos[dtRefer].linhas.push({\n        conta: campos[idx.cdConta],\n        descricao: campos[idx.dsConta],\n        valor: campos[idx.vlConta],\n      });\n    }\n  }\n}\n\nconst periodosOrdenados = Object.keys(periodos).sort().reverse().slice(0, 3);\n\nfunction formatarValor(valorStr) {\n  const n = parseFloat(valorStr);\n  if (Number.isNaN(n)) return valorStr;\n  // Valores no DRE da CVM vêm em milhares de reais (campo ESCALA_MOEDA=MIL).\n  return `R$ ${n.toLocaleString('pt-BR')} mil`;\n}\n\nconst chunksFinais = [];\n\nfor (const dtRefer of periodosOrdenados) {\n  const periodo = periodos[dtRefer];\n  const textoLinhas = periodo.linhas\n    .map((l) => `${l.conta} ${l.descricao}: ${formatarValor(l.valor)}`)\n    .join('\\n');\n  const textoCompleto = `Demonstração do Resultado Consolidado -- ${periodo.denom} -- período encerrado em ${dtRefer} (dados oficiais CVM):\\n${textoLinhas}`;\n\n  for (let i = 0; i < textoCompleto.length; i += TAMANHO_CHUNK) {\n    const chunkIndex = Math.floor(i / TAMANHO_CHUNK);\n    chunksFinais.push({ json: {\n      dominio: detectado.dominio,\n      session_id: detectado.session_id,\n      ticker: detectado.ticker,\n      url: null,\n      titulo_documento: `DRE Consolidado CVM -- ${dtRefer}`,\n      chunk_index: chunkIndex,\n      chunk_texto: textoCompleto.slice(i, i + TAMANHO_CHUNK),\n      chunk_id_ponto: hashSimples(`${detectado.dominio}|cvm-dre|${dtRefer}|${chunkIndex}`),\n      sem_conteudo_real: false,\n    } });\n  }\n}\n\nif (chunksFinais.length === 0) {\n  chunksFinais.push({ json: {\n    dominio: detectado.dominio,\n    session_id: detectado.session_id,\n    ticker: detectado.ticker,\n    url: null,\n    titulo_documento: null,\n    chunk_index: 0,\n    chunk_texto: 'nenhum dado financeiro oficial (CVM) encontrado para esta empresa',\n    chunk_id_ponto: hashSimples(`${detectado.dominio || 'sem-dominio'}|cvm-dre|sem-dados|0`),\n    sem_conteudo_real: true,\n  } });\n}\n\nreturn chunksFinais;"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-00000000000d",
+      "name": "Gerar Embedding (Chunk Financeiro)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        620
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/embed",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'ollama.com/library/embeddinggemma:latest', input: $json.chunk_texto }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-00000000000e",
+      "name": "Montar Corpo do Upsert (Financeiro)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        620
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Construído aqui (JS real, não numa expressao ={{ }}) pelo mesmo motivo já\n// documentado no node \"Montar Prompt\": o parser de expressões do n8n para no\n// PRIMEIRO '}}' que encontrar, e um payload JSON aninhado como este tem\n// várias chaves de fechamento adjacentes -- embutir isso direto numa\n// expressão trunca o JSON no meio.\nconst embedItems = $input.all();\nconst chunkItems = $('Limpar e Dividir em Chunks').all();\n\nconst resultado = embedItems.map((item, i) => {\n  const embedding = (item.json.embeddings || [[]])[0];\n  const chunk = chunkItems[i].json;\n  const upsert_body = JSON.stringify({\n    points: [{\n      id: chunk.chunk_id_ponto,\n      vector: embedding,\n      payload: {\n        dominio: chunk.dominio,\n        ticker: chunk.ticker,\n        url: chunk.url,\n        titulo_documento: chunk.titulo_documento,\n        chunk_index: chunk.chunk_index,\n        chunk_texto: chunk.chunk_texto,\n        sem_conteudo_real: chunk.sem_conteudo_real,\n      },\n    }],\n  });\n  return { json: { upsert_body } };\n});\n\nreturn resultado;"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-00000000000f",
+      "name": "Upsert Chunk Financeiro (Qdrant)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3600,
+        620
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros/points",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.upsert_body }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000010",
+      "name": "Merge Status Financeiro",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3840,
+        520
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 3
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000011",
+      "name": "Finalizar Status Financeiro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        520
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// IMPORTANTE: os items que chegam aqui (via \"Merge Status Financeiro\") já\n// passaram pelo node de upsert do Qdrant, cujo output HTTP substitui o json\n// original do item pela resposta da API ({result, status, time}) -- então\n// não dá para contar \"chunks reais\" inspecionando esses items diretamente.\n// Em vez disso, contamos direto na origem: o node \"Limpar e Dividir em\n// Chunks\", filtrando os itens marcados como placeholder (sem_conteudo_real).\nconst detectado = $('Identificar Empresa Listada (B3)').first().json;\n\nlet contexto_financeiro_status;\nlet quantidadeChunksReais = 0;\nlet quantidadeChunksManuais = 0;\n\nif (!detectado.listada_b3) {\n  contexto_financeiro_status = 'Empresa não identificada como negociada na B3 (heurística de nome/ticker não encontrou correspondência) -- sem relatórios de RI/mercado disponíveis para esta análise.';\n} else {\n  const chunkItems = $('Limpar e Dividir em Chunks').all().filter(i => i.json && !i.json.sem_conteudo_real);\n  quantidadeChunksReais = chunkItems.length;\n\n  // Caminho paralelo à validação de dados da CVM: verifica se já existem\n  // relatórios enviados manualmente (via o form de upload) para este\n  // domínio na mesma collection do Qdrant.\n  const respostaManual = $('Verificar Relatórios Manuais Enviados').first().json;\n  const pontosManuais = (respostaManual && respostaManual.result && respostaManual.result.points) || [];\n  quantidadeChunksManuais = pontosManuais.length;\n\n  const partes = [];\n  if (quantidadeChunksReais > 0) {\n    const periodosUnicos = [...new Set(chunkItems.map((i) => i.json.titulo_documento))];\n    partes.push(`dados oficiais da CVM (Demonstração do Resultado Consolidado) de ${periodosUnicos.length} período(s)`);\n  }\n  if (quantidadeChunksManuais > 0) {\n    const titulosManuais = [...new Set(pontosManuais.map((p) => p.payload.titulo_documento))];\n    partes.push(`${titulosManuais.length} relatório(s) enviado(s) manualmente (${titulosManuais.join('; ')})`);\n  }\n\n  if (partes.length === 0) {\n    contexto_financeiro_status = `Empresa identificada como negociada na B3 (ticker ${detectado.ticker}), mas não foi possível localizar o CD_CVM/dados oficiais desta empresa, nem há relatórios enviados manualmente para este domínio.`;\n  } else {\n    contexto_financeiro_status = `Empresa negociada na B3 (ticker ${detectado.ticker}). Disponível para esta análise: ${partes.join('; e ')}.`;\n  }\n}\n\nreturn [{ json: {\n  dominio: detectado.dominio,\n  session_id: detectado.session_id,\n  listada_b3: detectado.listada_b3,\n  ticker: detectado.ticker,\n  contexto_financeiro_status,\n  quantidade_chunks_financeiros: quantidadeChunksReais,\n  quantidade_chunks_manuais: quantidadeChunksManuais,\n} }];"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000012",
+      "name": "Merge Pesquisa + Financeiro",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4320,
+        400
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000013",
+      "name": "Buscar Trechos de Relatórios (Qdrant)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        780
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros/points/query",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: $json.embeddings[0], limit: 4, with_payload: true, filter: { must: [ { key: 'dominio', match: { value: $('Extrair Domínio').item.json.dominio } }, { key: 'sem_conteudo_real', match: { value: false } } ] } }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000014",
+      "name": "Merge Cases + Financeiro",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2000,
+        780
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000020",
+      "name": "Buscar Cadastro CVM (Cia Aberta)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        620
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dados.cvm.gov.br/dados/CIA_ABERTA/CAD/DADOS/cad_cia_aberta.csv",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000021",
+      "name": "Identificar CD_CVM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        620
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const detectado = $('Identificar Empresa Listada (B3)').first().json;\nconst csvTexto = $json.data || $json;\n\n// Reaproveita a mesma normalização/comparação por token já usada para casar\n// o ticker na B3 (evita duplicar heurísticas diferentes para o mesmo tipo de\n// problema -- ver \"Identificar Empresa Listada (B3)\").\nfunction normalizar(txt) {\n  return String(txt || '')\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .toUpperCase()\n    .replace(/\\b(S\\.?A\\.?|SA|LTDA|HOLDING|HOLDINGS|LTD|INC|CORP|CIA|COMPANHIA|GROUP|GRUPO|CO)\\b\\.?/g, '')\n    .replace(/[^A-Z0-9 ]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction tokens(txt) {\n  return normalizar(txt).split(' ').filter(Boolean);\n}\n\nconst cnpjAlvo = (detectado.cnpj_encontrado || '').replace(/\\D/g, '');\nconst nomeAlvo = detectado.nome_correspondente || detectado.razao_social_brasilapi || detectado.nome_provavel || '';\nconst tokensAlvo = tokens(nomeAlvo);\nconst tokensAlvoSet = new Set(tokensAlvo);\n\nconst linhas = String(csvTexto).split('\\n');\nconst header = (linhas[0] || '').split(';').map((h) => h.trim());\nconst idxCnpj = header.indexOf('CNPJ_CIA');\nconst idxDenom = header.indexOf('DENOM_SOCIAL');\nconst idxCdCvm = header.indexOf('CD_CVM');\n\nlet cdCvmEncontrado = null;\nlet nomeEncontrado = null;\n\n// 1) match exato por CNPJ -- mais confiável que qualquer heurística de nome.\nif (cnpjAlvo) {\n  for (let i = 1; i < linhas.length; i++) {\n    const campos = linhas[i].split(';');\n    if (campos.length <= idxCdCvm) continue;\n    const cnpjLinha = (campos[idxCnpj] || '').replace(/\\D/g, '');\n    if (cnpjLinha === cnpjAlvo) {\n      cdCvmEncontrado = campos[idxCdCvm];\n      nomeEncontrado = campos[idxDenom];\n      break;\n    }\n  }\n}\n\n// 2) fallback: match por nome (mesma lógica de token usada no match B3).\nif (!cdCvmEncontrado && tokensAlvo.length > 0) {\n  for (let i = 1; i < linhas.length; i++) {\n    const campos = linhas[i].split(';');\n    if (campos.length <= idxCdCvm) continue;\n    const tokensCandidato = tokens(campos[idxDenom]);\n    if (tokensCandidato.length === 0) continue;\n    const tokensCandidatoSet = new Set(tokensCandidato);\n    const candidatoDentroDoAlvo = tokensCandidato.every((t) => tokensAlvoSet.has(t));\n    const alvoDentroDoCandidato = tokensAlvo.every((t) => tokensCandidatoSet.has(t));\n    if (candidatoDentroDoAlvo || alvoDentroDoCandidato) {\n      cdCvmEncontrado = campos[idxCdCvm];\n      nomeEncontrado = campos[idxDenom];\n      break;\n    }\n  }\n}\n\n// CD_CVM aparece sem zero à esquerda no cadastro, mas com 6 dígitos\n// (zero-padded) nos arquivos de ITR -- confirmado inspecionando os dados\n// reais (WEG: \"5410\" no cadastro, \"005410\" no ITR).\nconst cdCvmPadded = cdCvmEncontrado ? String(cdCvmEncontrado).trim().padStart(6, '0') : null;\nconst anoAtual = new Date().getFullYear();\n\nreturn [{ json: {\n  ...detectado,\n  cd_cvm: cdCvmPadded,\n  nome_cvm: nomeEncontrado,\n  ano_atual: anoAtual,\n  ano_anterior: anoAtual - 1,\n} }];"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000022",
+      "name": "Baixar ITR CVM (Ano Atual)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        540
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/ITR/DADOS/itr_cia_aberta_' + $json.ano_atual + '.zip' }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000023",
+      "name": "Baixar ITR CVM (Ano Anterior)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        700
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/ITR/DADOS/itr_cia_aberta_' + $json.ano_anterior + '.zip' }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000024",
+      "name": "Descompactar ITR (Ano Atual)",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        540
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "decompress",
+        "binaryPropertyName": "data",
+        "outputPrefix": "file_"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000025",
+      "name": "Descompactar ITR (Ano Anterior)",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        700
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "decompress",
+        "binaryPropertyName": "data",
+        "outputPrefix": "file_"
+      }
+    },
+    {
+      "id": "fa10a001-0000-4000-8000-000000000026",
+      "name": "Merge ITR Descompactados",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2880,
+        620
+      ],
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000001",
+      "name": "Upload Manual de Relatório PDF",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        1100
+      ],
+      "webhookId": "fb20b002-0000-4000-8000-000000000001",
+      "parameters": {
+        "formTitle": "Upload de Relatório de RI (PDF)",
+        "formDescription": "Envie manualmente um relatório de RI/mercado em PDF (ex.: release de resultados baixado do site da empresa) para ser processado e indexado na base vetorial do AI SDR, complementando os dados oficiais da CVM.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Domínio da empresa",
+              "fieldName": "dominio_empresa",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "ex.: weg.net"
+            },
+            {
+              "fieldLabel": "Ticker B3 (opcional)",
+              "fieldName": "ticker_b3",
+              "fieldType": "text",
+              "requiredField": false,
+              "placeholder": "ex.: WEGE3"
+            },
+            {
+              "fieldLabel": "Título do documento",
+              "fieldName": "titulo_documento",
+              "fieldType": "text",
+              "requiredField": true,
+              "placeholder": "ex.: Release de Resultados 3T25"
+            },
+            {
+              "fieldLabel": "Arquivo PDF",
+              "fieldName": "arquivo_pdf",
+              "fieldType": "file",
+              "requiredField": true,
+              "acceptFileTypes": ".pdf",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000002",
+      "name": "Garantir Collection Financeira Existe (Upload)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        1100
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vectors: { size: 768, distance: 'Cosine' } }) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000003",
+      "name": "Extrair Texto do PDF Enviado",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        480,
+        1100
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "arquivo_pdf",
+        "options": {
+          "keepSource": "json",
+          "joinPages": true,
+          "maxPages": 30
+        }
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000004",
+      "name": "IF Extração Bem-Sucedida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        1100
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ !!($json.text && $json.text.trim().length > 0) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000005",
+      "name": "Preparar Chunks do Upload Manual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        1000
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const form = $('Upload Manual de Relatório PDF').first().json;\n// NÃO usar $json.text aqui -- o input direto deste node vem de \"Garantir\n// Collection Financeira Existe (Upload)\", um node HTTP cuja resposta\n// substitui o json original do item (mesmo motivo já documentado em\n// \"Finalizar Status Financeiro\"). Por isso referenciamos a origem real do\n// texto extraído pelo nome, não pelo $json direto.\nconst textoExtraido = $('Extrair Texto do PDF Enviado').first().json.text || '';\n\nfunction hashSimples(str) {\n  let hash = 5381;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) + hash) + str.charCodeAt(i);\n    hash = hash & hash;\n  }\n  return Math.abs(hash);\n}\n\nconst TAMANHO_CHUNK = 1000;\nconst MAX_CHARS = 20000; // cap alto -- é um upload manual e deliberado, não uma busca automática\n\nconst dominio = String(form.dominio_empresa || '').trim().toLowerCase();\nconst ticker = (form.ticker_b3 || '').trim() || null;\nconst tituloDocumento = (form.titulo_documento || '').trim() || 'Relatório enviado manualmente';\n\nconst textoLimpo = String(textoExtraido).replace(/\\s+/g, ' ').trim().slice(0, MAX_CHARS);\n\nconst chunksFinais = [];\nfor (let i = 0; i < textoLimpo.length; i += TAMANHO_CHUNK) {\n  const chunkIndex = Math.floor(i / TAMANHO_CHUNK);\n  chunksFinais.push({ json: {\n    dominio,\n    ticker,\n    url: null,\n    titulo_documento: tituloDocumento,\n    chunk_index: chunkIndex,\n    chunk_texto: textoLimpo.slice(i, i + TAMANHO_CHUNK),\n    // Namespace \"upload-manual\" distinto do \"cvm-dre\" usado nos dados da\n    // CVM -- evita qualquer colisão de ID entre as duas fontes na mesma\n    // collection do Qdrant.\n    chunk_id_ponto: hashSimples(`${dominio}|upload-manual|${tituloDocumento}|${chunkIndex}`),\n    sem_conteudo_real: false,\n    fonte: 'upload_manual',\n  } });\n}\n\nreturn chunksFinais;"
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000006",
+      "name": "Gerar Embedding (Chunk Manual)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        1000
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/embed",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'ollama.com/library/embeddinggemma:latest', input: $json.chunk_texto }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000007",
+      "name": "Montar Corpo do Upsert (Manual)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1000
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Mesmo motivo já documentado nos outros nodes de upsert deste workflow: o\n// corpo é construído aqui em JS, não numa expressão ={{ }} do node HTTP\n// seguinte, porque o parser de expressões do n8n para no primeiro '}}' que\n// encontrar, e um payload JSON aninhado tem várias chaves de fechamento\n// adjacentes.\nconst embedItems = $input.all();\nconst chunkItems = $('Preparar Chunks do Upload Manual').all();\n\nconst resultado = embedItems.map((item, i) => {\n  const embedding = (item.json.embeddings || [[]])[0];\n  const chunk = chunkItems[i].json;\n  const upsert_body = JSON.stringify({\n    points: [{\n      id: chunk.chunk_id_ponto,\n      vector: embedding,\n      payload: {\n        dominio: chunk.dominio,\n        ticker: chunk.ticker,\n        url: chunk.url,\n        titulo_documento: chunk.titulo_documento,\n        chunk_index: chunk.chunk_index,\n        chunk_texto: chunk.chunk_texto,\n        sem_conteudo_real: chunk.sem_conteudo_real,\n        fonte: chunk.fonte,\n      },\n    }],\n  });\n  return { json: { upsert_body } };\n});\n\nreturn resultado;"
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000008",
+      "name": "Upsert Chunk Manual (Qdrant)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        1000
+      ],
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros/points",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.upsert_body }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-000000000009",
+      "name": "Resumir Upload Concluído",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1000
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const form = $('Upload Manual de Relatório PDF').first().json;\nconst chunkItems = $('Preparar Chunks do Upload Manual').all();\n\nreturn [{ json: {\n  dominio: form.dominio_empresa,\n  titulo_documento: form.titulo_documento,\n  quantidade_chunks: chunkItems.length,\n} }];"
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-00000000000a",
+      "name": "Upload Concluído (Sucesso)",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        1000
+      ],
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Upload concluído com sucesso",
+        "completionMessage": "={{ 'Documento \"' + $json.titulo_documento + '\" processado para o domínio ' + $json.dominio + '. ' + $json.quantidade_chunks + ' trecho(s) indexado(s) na base vetorial e disponíveis para a próxima análise deste prospect.' }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "fb20b002-0000-4000-8000-00000000000b",
+      "name": "Upload Falhou (Erro)",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        960,
+        1200
+      ],
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Não foi possível processar o arquivo",
+        "completionMessage": "Não conseguimos extrair texto do PDF enviado. Verifique se o arquivo não está corrompido, protegido por senha ou é apenas um PDF escaneado sem texto selecionável, e tente novamente.",
+        "options": {}
+      }
+    },
+    {
+      "id": "fc30c003-0000-4000-8000-000000000001",
+      "name": "Montar Consulta de Relatórios Manuais",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// NÃO usar $json.dominio aqui -- o input direto deste node passou por\n// \"Garantir Collection Financeira Existe\" (HTTP), cuja resposta substitui o\n// json original do item (mesmo motivo documentado várias vezes neste\n// workflow). Referenciamos a origem real dos dados pelo nome.\nconst dominio = $('Identificar Empresa Listada (B3)').first().json.dominio;\n\nconst corpo = {\n  filter: {\n    must: [\n      { key: 'dominio', match: { value: dominio } },\n      { key: 'fonte', match: { value: 'upload_manual' } },\n    ],\n  },\n  limit: 50,\n  with_payload: true,\n};\n\nreturn [{ json: { ...$json, corpo_consulta_manual: JSON.stringify(corpo) } }];"
+      }
+    },
+    {
+      "id": "fc30c003-0000-4000-8000-000000000002",
+      "name": "Verificar Relatórios Manuais Enviados",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/ai_sdr_relatorios_financeiros/points/scroll",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.corpo_consulta_manual }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     }
   ],
   "connections": {
-    "Webhook - Recebe Domínio": {
+    "Chat - Recebe Prompt": {
       "main": [
         [
           {
@@ -242,18 +1052,56 @@
       "main": [
         [
           {
-            "node": "Buscar no SearXNG",
+            "node": "Detectar Setor e Montar Queries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extrair Nome da Empresa e CNPJ",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar no SearXNG": {
+    "Detectar Setor e Montar Queries": {
       "main": [
         [
           {
-            "node": "Compilar Perfil de Pesquisa",
+            "node": "Buscar no SearXNG (Empresa)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar no SearXNG (Empresa)": {
+      "main": [
+        [
+          {
+            "node": "Buscar no SearXNG (Setor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar no SearXNG (Setor)": {
+      "main": [
+        [
+          {
+            "node": "Buscar no SearXNG (Mercado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar no SearXNG (Mercado)": {
+      "main": [
+        [
+          {
+            "node": "Merge Pesquisa + Financeiro",
             "type": "main",
             "index": 0
           }
@@ -278,6 +1126,11 @@
             "node": "Buscar Cases Similares (Qdrant)",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Buscar Trechos de Relatórios (Qdrant)",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -286,7 +1139,7 @@
       "main": [
         [
           {
-            "node": "Montar Prompt",
+            "node": "Merge Cases + Financeiro",
             "type": "main",
             "index": 0
           }
@@ -297,14 +1150,36 @@
       "main": [
         [
           {
-            "node": "Classificar com Gemma (Ollama)",
+            "node": "Classificar com Gemini (Chain)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Classificar com Gemma (Ollama)": {
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classificar com Gemini (Chain)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memória por Sessão": {
+      "ai_memory": [
+        [
+          {
+            "node": "Classificar com Gemini (Chain)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar com Gemini (Chain)": {
       "main": [
         [
           {
@@ -316,12 +1191,407 @@
       ]
     },
     "Montar Resposta Final": {
+      "main": []
+    },
+    "Extrair Nome da Empresa e CNPJ": {
       "main": [
         [
           {
-            "node": "Responder ao Open WebUI",
+            "node": "Consultar CNPJ (BrasilAPI)",
             "type": "main",
             "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar CNPJ (BrasilAPI)": {
+      "main": [
+        [
+          {
+            "node": "Buscar Tickers B3 (brapi)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Tickers B3 (brapi)": {
+      "main": [
+        [
+          {
+            "node": "Identificar Empresa Listada (B3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar Empresa Listada (B3)": {
+      "main": [
+        [
+          {
+            "node": "Garantir Collection Financeira Existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir Collection Financeira Existe": {
+      "main": [
+        [
+          {
+            "node": "IF Empresa Listada na B3?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Empresa Listada na B3?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cadastro CVM (Cia Aberta)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar Consulta de Relatórios Manuais",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sem Documentos Financeiros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar e Dividir em Chunks": {
+      "main": [
+        [
+          {
+            "node": "Gerar Embedding (Chunk Financeiro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Embedding (Chunk Financeiro)": {
+      "main": [
+        [
+          {
+            "node": "Montar Corpo do Upsert (Financeiro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Corpo do Upsert (Financeiro)": {
+      "main": [
+        [
+          {
+            "node": "Upsert Chunk Financeiro (Qdrant)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sem Documentos Financeiros": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Financeiro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Chunk Financeiro (Qdrant)": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Financeiro",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Status Financeiro": {
+      "main": [
+        [
+          {
+            "node": "Finalizar Status Financeiro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalizar Status Financeiro": {
+      "main": [
+        [
+          {
+            "node": "Merge Pesquisa + Financeiro",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Pesquisa + Financeiro": {
+      "main": [
+        [
+          {
+            "node": "Compilar Perfil de Pesquisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Trechos de Relatórios (Qdrant)": {
+      "main": [
+        [
+          {
+            "node": "Merge Cases + Financeiro",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Cases + Financeiro": {
+      "main": [
+        [
+          {
+            "node": "Montar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cadastro CVM (Cia Aberta)": {
+      "main": [
+        [
+          {
+            "node": "Identificar CD_CVM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar CD_CVM": {
+      "main": [
+        [
+          {
+            "node": "Baixar ITR CVM (Ano Atual)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Baixar ITR CVM (Ano Anterior)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar ITR CVM (Ano Atual)": {
+      "main": [
+        [
+          {
+            "node": "Descompactar ITR (Ano Atual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar ITR CVM (Ano Anterior)": {
+      "main": [
+        [
+          {
+            "node": "Descompactar ITR (Ano Anterior)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descompactar ITR (Ano Atual)": {
+      "main": [
+        [
+          {
+            "node": "Merge ITR Descompactados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descompactar ITR (Ano Anterior)": {
+      "main": [
+        [
+          {
+            "node": "Merge ITR Descompactados",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge ITR Descompactados": {
+      "main": [
+        [
+          {
+            "node": "Limpar e Dividir em Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Manual de Relatório PDF": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto do PDF Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir Collection Financeira Existe (Upload)": {
+      "main": [
+        [
+          {
+            "node": "Extrair Texto do PDF Enviado",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparar Chunks do Upload Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Texto do PDF Enviado": {
+      "main": [
+        [
+          {
+            "node": "IF Extração Bem-Sucedida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Extração Bem-Sucedida?": {
+      "main": [
+        [
+          {
+            "node": "Garantir Collection Financeira Existe (Upload)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upload Falhou (Erro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Chunks do Upload Manual": {
+      "main": [
+        [
+          {
+            "node": "Gerar Embedding (Chunk Manual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Embedding (Chunk Manual)": {
+      "main": [
+        [
+          {
+            "node": "Montar Corpo do Upsert (Manual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Corpo do Upsert (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Upsert Chunk Manual (Qdrant)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Chunk Manual (Qdrant)": {
+      "main": [
+        [
+          {
+            "node": "Resumir Upload Concluído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumir Upload Concluído": {
+      "main": [
+        [
+          {
+            "node": "Upload Concluído (Sucesso)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Consulta de Relatórios Manuais": {
+      "main": [
+        [
+          {
+            "node": "Verificar Relatórios Manuais Enviados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Relatórios Manuais Enviados": {
+      "main": [
+        [
+          {
+            "node": "Merge Status Financeiro",
+            "type": "main",
+            "index": 2
           }
         ]
       ]

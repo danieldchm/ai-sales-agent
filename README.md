@@ -34,18 +34,22 @@ O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 | Camada        | Ferramenta                                              |
 |---------------|----------------------------------------------------------|
 | Orquestração  | N8N (workflow: research → RAG → LLM → resposta)         |
-| LLM           | Ollama, modelo `gemma4:12b-mlx` **local**               |
-| Interface     | Open WebUI (já disponível em container) via Pipe/Function|
-| Research      | SearXNG self-hosted + scraping do site do prospect      |
-| RAG           | Qdrant (vector store da base de cases), via node do N8N |
+| LLM           | **Temporariamente** Google Gemini (`models/gemini-2.5-flash`) via API — ver nota abaixo. Local originalmente: Ollama, `gemma4:12b-mlx` |
+| Interface     | Chat nativo do N8N (node "Chat - Recebe Prompt")        |
+| Research      | SearXNG self-hosted + scraping do site do prospect + dados abertos da CVM (empresas B3) |
+| RAG           | Qdrant (vector store da base de cases + relatórios financeiros), via node do N8N |
 
-Stack 100% local — nenhum dado do prospect é enviado a APIs externas de terceiros.
+**Nota (2026-07-13):** a pedido do usuário, o LLM de classificação foi trocado de Ollama local para a
+API do Google Gemini "por enquanto" — o stack **deixa de ser 100% local** enquanto essa configuração
+estiver ativa, já que o perfil de pesquisa do prospect é enviado à API do Gemini. Para voltar a 100%
+local, troque a credencial/modelo de volta para o node "Ollama Chat Model" (ver
+[`n8n/workflows/README.md`](n8n/workflows/README.md)).
 
 **Fora do MVP (Fase 2):** transcrição de calls (Whisper), integração com CRM.
 
 ## Como rodar
 
-Pressupõe Ollama e Open WebUI já disponíveis localmente (fora deste compose). Sobe **N8N**,
+Pressupõe Ollama já disponível localmente (fora deste compose). Sobe **N8N**,
 **SearXNG** e **Qdrant**:
 
 ```bash
@@ -58,9 +62,6 @@ docker compose up -d
 | SearXNG    | http://localhost:8080 | `http://searxng:8080` |
 | Qdrant     | http://localhost:6333 | `http://qdrant:6333`  |
 | Ollama     | http://localhost:11434 | `http://host.docker.internal:11434` |
-
-O Open WebUI (container já existente, fora deste compose) deve chamar o webhook do N8N via
-`http://host.docker.internal:5678/webhook/ai-sdr`.
 
 Criar a collection do Qdrant para a base de cases (768 dimensões, compatível com o modelo de
 embedding `embeddinggemma` do Ollama) e indexar os 20 cases curados:
@@ -76,7 +77,7 @@ python3 scripts/ingest_cases.py
 
 Por fim, siga [`n8n/workflows/README.md`](n8n/workflows/README.md) para completar o setup inicial
 do N8N (criar sua conta de owner), ativar o workflow **"AI SDR - Qualificação de Leads"** (já
-importado) e instalar a [Function do Open WebUI](openwebui/pipe_ai_sdr.py).
+importado) e testar pelo painel de chat nativo do próprio N8N.
 
 ## Base de conhecimento (RAG)
 
@@ -84,14 +85,13 @@ importado) e instalar a [Function do Open WebUI](openwebui/pipe_ai_sdr.py).
 documentados publicamente + 9 cenários compostos claramente identificados) que ensinam o agente
 a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant.
 
-## Workflow N8N e Function do Open WebUI
+## Workflow N8N
 
 - [`n8n/workflows/ai-sdr-qualification.json`](n8n/workflows/ai-sdr-qualification.json) — pipeline
-  completo (webhook → research → RAG → Ollama/Gemma → resposta), já importado no seu N8N local
+  completo (chat → research → RAG → Ollama/Gemma com memória por sessão → resposta), já importado
+  no seu N8N local
 - [`n8n/schemas/llm-output.schema.json`](n8n/schemas/llm-output.schema.json) — schema JSON usado
   na chamada estruturada ao Gemma (ver [`docs/llm-output-schema.md`](docs/llm-output-schema.md))
-- [`openwebui/pipe_ai_sdr.py`](openwebui/pipe_ai_sdr.py) — Function/Pipe que conecta o chat do
-  Open WebUI ao webhook do N8N
 
 ## Estrutura
 
@@ -114,8 +114,6 @@ a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant
 │   │   └── README.md                  # como abrir, ativar e testar
 │   └── schemas/
 │       └── llm-output.schema.json     # schema JSON da saída do Gemma
-├── openwebui/
-│   └── pipe_ai_sdr.py   # Function/Pipe: chat -> webhook do N8N
 └── docs/
     ├── genai-canvas.md         # canvas original (rascunho)
     ├── mvp-scope.md            # revisão + escopo do MVP
