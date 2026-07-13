@@ -204,7 +204,7 @@ a distinguir GenAI real de RPA/BI/automação clássica. Já indexados no Qdrant
 │   └── settings.yml     # habilita formato JSON (consumido pelo N8N)
 ├── n8n/
 │   ├── workflows/
-│   │   ├── ai-sdr-qualification.json  # pipeline completo (11 nodes)
+│   │   ├── ai-sdr-qualification.json  # pipeline completo (58 nodes, incluindo CVM/B3, upload manual e notas adesivas)
 │   │   └── README.md                  # como abrir, ativar e testar
 │   └── schemas/
 │       └── llm-output.schema.json     # schema JSON da saída do Gemma
