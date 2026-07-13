@@ -34,11 +34,16 @@ env/
 data/raw/
 data/processed/
 *.sqlite
+*.sqlite-*
 *.duckdb
 chroma/
 .chroma/
 vector_store/
 *.faiss
+
+# === Dados baixados pela CVM (Bases locais temporárias) ===
+*.csv
+*.zip
 
 # === SearXNG (arquivos gerados pelo container, mantemos settings.yml versionado) ===
 searxng/uwsgi.ini
