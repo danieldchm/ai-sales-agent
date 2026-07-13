@@ -13,11 +13,17 @@
     já ter formulário/e-mail/briefing em mãos. Isso amplia o escopo técnico (adiciona uma etapa
     de research automatizado) mas aumenta o valor: o agente funciona com o mínimo de informação
     que o vendedor normalmente já tem (o site do prospect).
-  - **Stack 100% local:** N8N (orquestração) + Ollama rodando modelo Gemma local (LLM) +
-    Open WebUI (interface de chat, já disponível em container). Ver §3.
+  - **Stack 100% local:** N8N (orquestração + **chat nativo**, node "Chat - Recebe Prompt") +
+    Ollama rodando modelo Gemma local (LLM) + Qdrant (vector store) + SearXNG (busca). Ver §3.
+    *(A camada de Open WebUI proposta na v0 foi removida — o trigger de chat nativo do N8N já
+    resolve o problema de sessão órfã e elimina uma dependência.)*
   - Isso **resolve diretamente** o risco de segurança de dados apontado no canvas original
     (nota 5): como o LLM roda localmente via Ollama, nenhum dado do prospect é enviado a uma
     API externa de terceiros.
+  - **v2 (2026-07): enriquecimento ampliado** — além do scraping do site, o research passou a
+    fazer 3 buscas paralelas no SearXNG (empresa, setor, mercado) e, para empresas listadas na
+    **B3**, a cruzar com **dados oficiais da CVM** (DRE dos ITRs) e com **relatórios de RI
+    enviados manualmente** (upload de PDF). Ver §2 e §3.
 
 ## 1. Revisão crítica do canvas
 
@@ -38,21 +44,26 @@ MVP — são as notas médias (5) em **disponibilidade/qualidade de dados**, **a
 
 ## 2. Escopo do MVP (o que entra)
 
-**Entrada:** domínio do prospect (ex.: `itau.com.br`), informado pelo vendedor no chat (Open WebUI).
+**Entrada:** domínio do prospect (ex.: `itau.com.br`), com contexto/dor opcional na mesma mensagem,
+informado pelo vendedor no **chat nativo do N8N**.
 
 **Pipeline (com justificativa em cada etapa):**
-1. **Research/enriquecimento** a partir do domínio — coleta informações públicas sobre a empresa
-   (site institucional, notícias, vagas de emprego, sinais de maturidade digital/tech stack).
-2. **RAG** sobre a base de cases da consultoria — recupera cases/soluções similares já entregues.
-3. **Classificação** da demanda mais provável: `GenAI real` | `RPA` | `BI` | `automação clássica`.
-4. **Nível de maturidade em IA** do prospect (ex.: inicial / em desenvolvimento / avançado).
-5. **Direcionamento de estratégia para o vendedor**: manter a abordagem que o prospect já trouxe
+1. **Research/enriquecimento** a partir do domínio — scraping do site institucional + **3 buscas
+   paralelas no SearXNG** (empresa, setor/indústria, mercado/concorrentes).
+2. **Dados financeiros oficiais (empresas B3):** quando o prospect é identificado como companhia
+   negociada na bolsa brasileira, cruza com os **dados abertos da CVM** (DRE Consolidado dos ITRs)
+   e com **relatórios de RI enviados manualmente** (PDF), indexando tudo no Qdrant.
+3. **RAG** sobre a base de cases da consultoria — recupera cases/soluções similares já entregues
+   (busca guiada pela dor descrita pelo vendedor, para não poluir com o ramo da empresa).
+4. **Classificação** da demanda mais provável: `GenAI real` | `RPA` | `BI` | `automação clássica`.
+5. **Nível de maturidade em IA** do prospect (ex.: inicial / em desenvolvimento / avançado).
+6. **Direcionamento de estratégia para o vendedor**: manter a abordagem que o prospect já trouxe
    vs. propor um *shift* de estratégia; e se é necessário um **discovery mais profundo** antes de
    avançar.
-6. **3–5 perguntas de discovery** sugeridas, adaptadas ao que já foi descoberto na pesquisa.
+7. **3–5 perguntas de discovery** sugeridas, adaptadas ao que já foi descoberto na pesquisa.
 
 **Saída:** resumo estruturado (perfil da empresa + classificação + maturidade + recomendação de
-direcionamento + perguntas + cases relevantes), entregue como mensagem no chat do Open WebUI.
+direcionamento + perguntas + cases relevantes), entregue como mensagem no **chat nativo do N8N**.
 
 **Fora do MVP (Fase 2+):** Whisper (transcrição de calls), integração com CRM, scoring histórico,
 multiusuário/autenticação.
@@ -60,60 +71,70 @@ multiusuário/autenticação.
 ## 3. Arquitetura mínima proposta
 
 ```
-[Vendedor informa o domínio no chat — Open WebUI]
+[Vendedor informa o domínio no chat nativo do N8N]
                     │
                     ▼
         ┌───────────────────────┐
         │   N8N (orquestração)  │
-        │  workflow disparado   │
-        │  via webhook          │
+        │  chat trigger nativo  │
         └──────────┬────────────┘
                     │
-     ┌──────────────┼───────────────────┐
-     ▼              ▼                   ▼
-┌─────────┐  ┌───────────────┐   ┌──────────────┐
-│ Research │  │  RAG retrieval │   │ Ollama (Gemma)│
-│ (scraping│  │  base de cases │   │  LLM local    │
-│ do site, │  │  (vector store)│   │  classificação│
-│ notícias,│  └───────┬────────┘   │  + recomendação│
-│  vagas)  │          │            └──────┬────────┘
-└────┬─────┘          │                   │
-     └──────────► compõe prompt ◄─────────┘
-                       │
-                       ▼
-        Resposta estruturada → Open WebUI (chat)
+     ┌──────────────┼───────────────────────────────┐
+     ▼              ▼                                ▼
+┌──────────┐  ┌──────────────────┐          ┌───────────────┐
+│ Research │  │ Financeiro B3     │          │  RAG retrieval │
+│ scraping │  │ CVM (DRE/ITR) +   │          │  base de cases │
+│ + 3×     │  │ upload manual PDF │          │  (Qdrant)      │
+│ SearXNG  │  │ → Qdrant          │          └───────┬────────┘
+└────┬─────┘  └────────┬──────────┘                  │
+     └─────────────────┼───────────► compõe prompt ◄─┘
+                       │                   │
+                       ▼                   ▼
+                              ┌──────────────────┐
+                              │ Ollama (Gemma)    │
+                              │ LLM local +       │
+                              │ memória p/ sessão │
+                              └────────┬──────────┘
+                                       ▼
+                    Resposta estruturada → chat nativo do N8N
 ```
 
-- **UI:** Open WebUI (já disponível em container local) — interface de chat com o vendedor.
-- **Orquestração:** N8N — recebe o domínio via webhook, executa scraping/research, consulta o
-  RAG e chama o LLM, formata e devolve a resposta.
+- **UI:** **chat nativo do N8N** (node "Chat - Recebe Prompt") — sem camada de UI externa; cada
+  janela de chat tem memória própria por sessão (Window Buffer Memory, últimas 6 interações).
+- **Orquestração:** N8N — recebe o domínio (+ contexto opcional), executa research/scraping, o
+  pipeline financeiro B3/CVM, consulta o RAG e chama o LLM, formata e devolve a resposta.
 - **LLM:** Ollama rodando **`gemma4:12b-mlx`** (build otimizado para Apple Silicon) — sem
-  chamadas a API externa; saída em JSON estruturado (schema fixo) sempre que possível.
-- **RAG:** **Qdrant** como vector store sobre a base de cases da consultoria, consultado via
-  node nativo do N8N.
-- **Research/enriquecimento:** nodes de HTTP request + parsing de HTML no N8N para o site do
-  domínio informado, combinados com consultas a uma instância local de **SearXNG** (busca de
-  notícias, vagas, menções públicas) — sem custo por chamada e sem API key de terceiros.
-- **Gatilho UI → N8N:** uma **Function/Pipe do Open WebUI** recebe a mensagem do vendedor
-  (contendo o domínio), chama o webhook do N8N de forma síncrona e exibe a resposta no chat.
+  chamadas a API externa. O schema JSON é aplicado via exemplo embutido no prompt + parsing
+  tolerante (o parâmetro `format` do Ollama é ignorado por este modelo servido via MLX — ver
+  [`llm-output-schema.md`](./llm-output-schema.md)).
+- **RAG:** **Qdrant** como vector store, com duas collections — `ai_sdr_cases` (base de cases) e
+  `ai_sdr_relatorios_financeiros` (chunks de CVM + PDFs manuais) — consultadas via node do N8N.
+- **Research/enriquecimento:** nodes de HTTP request + parsing de HTML para o site do domínio,
+  combinados com **3 buscas paralelas** a uma instância local de **SearXNG** (empresa, setor,
+  mercado) — sem custo por chamada e sem API key de terceiros.
+- **Dados financeiros (B3):** detecção via BrasilAPI (CNPJ→razão social) + brapi.dev (tickers),
+  cruzamento com dados abertos da **CVM** (cadastro + ITRs), mais um formulário de **upload manual
+  de PDF** de RI — ambos indexados na mesma collection financeira do Qdrant.
 
-### Decisões de implementação (fechadas em 2026-07-10)
+### Decisões de implementação
 
 | Decisão | Escolha |
 |---|---|
-| Fonte de dados da pesquisa | Scraping do site + **SearXNG** self-hosted |
-| Gatilho Open WebUI → N8N | **Pipe/Function** do Open WebUI chamando webhook do N8N |
-| Vector store do RAG | **Qdrant** |
+| Fonte de dados da pesquisa | Scraping do site + **3× SearXNG** self-hosted |
+| Interface de chat | **Chat trigger nativo do N8N** (Open WebUI removido) |
+| Dados financeiros de empresas B3 | **Dados abertos da CVM** (ITR/DRE) + upload manual de PDF |
+| Vector store do RAG | **Qdrant** (2 collections) |
 | Modelo LLM (Ollama) | **`gemma4:12b-mlx`** |
 
-### Serviços adicionais que este pivot introduz
+### Serviços que este pivot introduz
 
-Além de Ollama, N8N e Open WebUI (já disponíveis), o MVP agora depende de subir localmente:
+Além de Ollama e N8N (já disponíveis), o MVP depende de subir localmente:
 - **SearXNG** (busca self-hosted)
 - **Qdrant** (vector store do RAG)
 
-**Status (2026-07-10):** os três serviços foram subidos via `docker-compose.yml` e verificados
-(N8N, SearXNG com formato JSON habilitado, Qdrant com a collection `ai_sdr_cases` criada).
+**Status (2026-07-13):** os serviços foram subidos via `docker-compose.yml` e verificados
+(N8N com chat nativo, SearXNG com formato JSON habilitado, Qdrant com as collections
+`ai_sdr_cases` e `ai_sdr_relatorios_financeiros` criadas).
 A base de **20 cases** (ver [`data/cases/`](../data/cases/README.md)) foi pesquisada, curada,
 embedada com `embeddinggemma` e indexada no Qdrant via
 [`scripts/ingest_cases.py`](../scripts/ingest_cases.py) — recuperação semântica testada e
@@ -121,17 +142,32 @@ funcionando.
 
 ## 4. Métricas — tornar mensuráveis
 
+### 4.1 Desempenho técnico (já medido)
+
+Benchmarks de execuções reais no hardware do autor (Apple Silicon, Ollama local) — ver detalhes em
+[`n8n/workflows/README.md`](../n8n/workflows/README.md#performance-observada-hardware-do-usuário):
+
+| Indicador | Valor observado |
+|---|---|
+| Tempo de resposta ponta a ponta (`weg.net`, execução #93, com CVM + PDF manual) | **~2min56s** |
+| Gargalo — classificação com Gemma (`gemma4:12b-mlx`) | ~100–200s, sensível ao tamanho do prompt |
+| Research (scraping + 3× SearXNG) e embeddings | poucos segundos cada |
+| Download/descompactação dos ITRs da CVM (empresa listada) | ~10–30s |
+
+### 4.2 Métricas de negócio (a coletar com o conjunto-ouro)
+
 | Indicador | Como medir no MVP | Baseline | Meta |
 |---|---|---|---|
 | Tempo de qualificação/lead | Cronometrar vendedor com vs. sem o agente | _(coletar)_ | −X% |
-| Acurácia da classificação | Comparar contra rótulo de consultor sênior em um **conjunto-ouro** (~30 domínios/prospects) | — | ≥ Y% |
-| Qualidade/relevância da pesquisa | O perfil da empresa gerado bate com o que um consultor levantaria manualmente? (1–5) | — | ≥ 4 |
-| Qualidade do direcionamento sugerido | Avaliação 1–5 do vendedor: a recomendação (manter estratégia vs. shift) ajudou de fato? | — | ≥ 4 |
-| Horas de pré-venda economizadas | Extrapolar do tempo/lead | — | — |
+| Acurácia da classificação | Comparar contra rótulo de consultor sênior em um **conjunto-ouro** (~30 domínios/prospects) | _(não medido)_ | ≥ Y% |
+| Qualidade/relevância da pesquisa | O perfil da empresa gerado bate com o que um consultor levantaria manualmente? (1–5) | _(não medido)_ | ≥ 4 |
+| Qualidade do direcionamento sugerido | Avaliação 1–5 do vendedor: a recomendação (manter estratégia vs. shift) ajudou de fato? | _(não medido)_ | ≥ 4 |
+| Horas de pré-venda economizadas | Extrapolar do tempo/lead | _(não medido)_ | — |
 
-> O **conjunto-ouro de ~30 domínios de prospects rotulados** (classificação + maturidade
-> esperadas, validadas por consultor sênior) é também o principal artefato de avaliação
-> acadêmica do trabalho.
+> **Ainda não medido:** as métricas de negócio dependem do **conjunto-ouro de ~30 domínios de
+> prospects rotulados** (classificação + maturidade esperadas, validadas por consultor sênior),
+> que é também o principal artefato de avaliação acadêmica do trabalho e ainda está por construir
+> (ver §6).
 
 ## 5. Governança & segurança (ângulo AI Leadership)
 
@@ -153,6 +189,8 @@ funcionando.
 - [x] Montar base de cases curada (`data/cases/`, 20 itens) e indexar no Qdrant
 - [x] Definir schema JSON da saída do LLM (ver [`docs/llm-output-schema.md`](./llm-output-schema.md))
 - [x] Implementar workflow N8N: research → RAG → Ollama (Gemma) → resposta (ver [`n8n/workflows/`](../n8n/workflows/README.md))
-- [x] Setup inicial do N8N, ativação do workflow e **teste ponta a ponta com sucesso** (domínio real `itau.com.br`, ~3min20s de resposta)
-- [x] Function do Open WebUI (`openwebui/pipe_ai_sdr.py`) instalada e ativada via API, testada via `/api/chat/completions`
+- [x] Setup inicial do N8N, ativação do workflow e **teste ponta a ponta com sucesso** (domínio real `weg.net`, ~2min56s de resposta)
+- [x] Migrar a interface para o **chat nativo do N8N** (camada Open WebUI removida do processo)
+- [x] Adicionar "deep research" (3 buscas paralelas no SearXNG: empresa, setor, mercado)
+- [x] Adicionar pipeline financeiro B3 via **dados abertos da CVM** (ITR/DRE) + **upload manual de PDF**
 - [ ] Criar conjunto-ouro de domínios/prospects rotulados para avaliação

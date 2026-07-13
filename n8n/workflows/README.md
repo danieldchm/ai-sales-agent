@@ -6,9 +6,17 @@
 ```
 Chat (n8n) → scraping do site → detecta setor + monta queries
   → busca SearXNG (empresa) → busca SearXNG (setor) → busca SearXNG (mercado)
+  ├─ (empresa listada na B3?) → CNPJ (BrasilAPI) + tickers (brapi) → dados CVM (ITR/DRE)
+  │                             + relatórios de RI enviados manualmente → Qdrant (financeiro)
   → compila perfil de pesquisa → embedding (Ollama) → busca cases similares (Qdrant)
-  → monta prompt → classifica (Chain + memória por sessão) → monta resposta → chat (n8n)
+  → busca trechos de relatórios (Qdrant) → monta prompt
+  → classifica (Chain + memória por sessão) → monta resposta → chat (n8n)
+
+Fluxo auxiliar (paralelo): Form de upload de PDF → extrai texto → chunks → embedding
+  → Qdrant (mesma collection financeira usada pelos dados da CVM)
 ```
+
+O workflow tem **58 nós** (51 funcionais + 7 notas adesivas que documentam as fases no editor).
 
 **Status: testado ponta a ponta com sucesso** (2026-07-13), com a execução de ID #93 para o domínio real `weg.net` com contexto de IA para contratos.
 O workflow respondeu em **~2min56s** usando o Ollama local (`gemma4:12b-mlx`), entregando a qualificação completa com cruzamento exato de dados oficiais da CVM e PDFs manuais no Qdrant, direcionamento estratégico livre de bugs de acentuação, perguntas de discovery personalizadas e cases selecionados com base na dor real do cliente.
@@ -16,7 +24,8 @@ O workflow respondeu em **~2min56s** usando o Ollama local (`gemma4:12b-mlx`), e
 ## O que já foi feito por mim
 
 1. Workflow **"AI SDR - Qualificação de Leads"** importado e **ativado**.
-2. Testei o webhook real (`POST /webhook/ai-sdr`) com `{"message": "itau.com.br"}` — funcionou.
+2. Testei ponta a ponta pelo chat nativo do n8n (trigger "Chat - Recebe Prompt") com domínios reais
+   (`itau.com.br`, `nubank.com.br`, `weg.net`, `gerdau.com.br`) — funcionou.
 
 ## Para você testar de novo
 

@@ -5,20 +5,27 @@ distinguindo demandas de **GenAI real** de casos melhor resolvidos por **RPA, BI
 clássica** — reduzindo o tempo de consultores sêniores e melhorando o dimensionamento de propostas.
 
 > Trabalho acadêmico — **MBA em AI Leadership / FIAP**.
-> Status: **rascunho inicial** (definição de escopo).
+> Status: **MVP implementado e testado ponta a ponta** (2026-07-13) — pipeline 100% local
+> (N8N + Ollama + Qdrant + SearXNG), sem dependência de APIs externas. Última execução validada:
+> `weg.net` com contexto de IA para contratos, resposta completa em **~2min56s** cruzando dados
+> oficiais da CVM, relatórios de RI enviados manualmente e a base de cases.
 
 ## O que o agente faz (MVP)
 
 O vendedor informa apenas o **domínio do prospect** (ex.: `itau.com.br`) no chat. O agente então:
 
-1. Faz **research/enriquecimento** automático sobre a empresa a partir do domínio (site
-   institucional, notícias, vagas de emprego, sinais de maturidade digital)
-2. Recupera **cases relevantes** da consultoria via RAG
-3. **Classifica** a demanda mais provável: `GenAI real` | `RPA` | `BI` | `automação clássica`
-4. Estima o **nível de maturidade em IA** do prospect
-5. Recomenda o **direcionamento de estratégia**: manter a abordagem que o prospect já propôs vs.
+1. Faz **research/enriquecimento** automático sobre a empresa a partir do domínio — scraping do
+   site institucional + **3 buscas paralelas no SearXNG** (empresa, setor/indústria e
+   mercado/concorrentes), um "deep research" que embasa a estratégia
+2. Para empresas **negociadas na B3**, cruza automaticamente com **dados oficiais da CVM**
+   (cadastro de companhias abertas + DRE Consolidado dos ITRs), e também incorpora **relatórios de
+   RI enviados manualmente** (upload de PDF), indexando tudo no mesmo vector store
+3. Recupera **cases relevantes** da consultoria via RAG (busca guiada pela dor descrita pelo vendedor)
+4. **Classifica** a demanda mais provável: `GenAI real` | `RPA` | `BI` | `automação clássica`
+5. Estima o **nível de maturidade em IA** do prospect
+6. Recomenda o **direcionamento de estratégia**: manter a abordagem que o prospect já propôs vs.
    sugerir um *shift*, e se é necessário um discovery mais profundo
-6. Sugere **perguntas de discovery** adaptadas ao que já foi levantado na pesquisa
+7. Sugere **perguntas de discovery** adaptadas ao que já foi levantado na pesquisa
 
 O vendedor sempre revisa a recomendação — **human-in-the-loop**.
 
@@ -140,6 +147,21 @@ flowchart TD
 | RAG           | Qdrant (vector store da base de cases + relatórios financeiros), via node do N8N |
 
 **Fora do MVP (Fase 2):** transcrição de calls (Whisper), integração com CRM.
+
+### Performance observada (benchmarks reais)
+
+Medições em execuções reais no hardware do autor (Apple Silicon, Ollama local) — ver detalhes em
+[`n8n/workflows/README.md`](n8n/workflows/README.md#performance-observada-hardware-do-usuário):
+
+| Etapa | Tempo observado |
+|---|---|
+| Embedding (Ollama) + scraping + 3 buscas SearXNG | poucos segundos cada |
+| Download + descompactação dos ITRs da CVM (empresa listada) | ~10–30s |
+| **Classificação com Gemma (gargalo)** | ~100–200s, sensível ao tamanho do prompt |
+| **Ponta a ponta (`weg.net`, execução #93, com CVM + PDF manual)** | **~2min56s** |
+
+Ainda **não medido:** acurácia de classificação contra rótulos de consultor sênior (depende do
+conjunto-ouro de prospects, ver [`docs/mvp-scope.md`](docs/mvp-scope.md#4-métricas--tornar-mensuráveis)).
 
 ## Como rodar
 

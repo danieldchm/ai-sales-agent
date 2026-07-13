@@ -57,4 +57,4 @@ classificação do prospect, mas nunca inventa a citação da fonte.
 ```
 
 O workflow então mescla este JSON com os `cases_relevantes` reais do Qdrant e formata tudo como
-Markdown para o chat do Open WebUI (ver node "Montar Resposta Final").
+Markdown para o chat nativo do N8N (ver node "Montar Resposta Final").
