@@ -85,7 +85,7 @@ flowchart TD
         direction TB
         MontarPrompt(Montar Prompt Estruturado)
         LangChainMem[(Window Buffer Memory)]
-        Gemini{Ollama local: gemma4:12b-mlx}
+        OllamaLLM{Ollama local: gemma4:12b-mlx}
         ParseJSON(Parse JSON & Formatação)
     end
 
@@ -103,7 +103,7 @@ flowchart TD
     
     QdrantCases & QdrantFinance -->|Contexto Relevante| MontarPrompt
     
-    MontarPrompt --> LangChainMem --> Gemini --> ParseJSON
+    MontarPrompt --> LangChainMem --> OllamaLLM --> ParseJSON
     ParseJSON --> ChatOut
 
     %% Estilos de nós para dar um visual clean
@@ -117,7 +117,7 @@ flowchart TD
 
     class User,User2 trigger;
     class ChatIn,ChatOut startEnd;
-    class Gemini,EmbedOllama,EmbedData success;
+    class OllamaLLM,EmbedOllama,EmbedData success;
     class QdrantCases,QdrantFinance database;
     class MatchB3 warning;
 ```
