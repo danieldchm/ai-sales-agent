@@ -10,19 +10,13 @@ Chat (n8n) → scraping do site → detecta setor + monta queries
   → monta prompt → classifica (Chain + memória por sessão) → monta resposta → chat (n8n)
 ```
 
-**Status: testado ponta a ponta com sucesso** (2026-07-10), com o domínio real `itau.com.br`.
-O N8N já foi configurado, o workflow importado e ativado, e o webhook respondeu corretamente em
-~3min20s com uma qualificação completa (perfil da empresa, classificação, maturidade,
-direcionamento de estratégia, perguntas de discovery e cases citados corretamente do Qdrant).
+**Status: testado ponta a ponta com sucesso** (2026-07-13), com a execução de ID #93 para o domínio real `weg.net` com contexto de IA para contratos.
+O workflow respondeu em **~2min56s** usando o Ollama local (`gemma4:12b-mlx`), entregando a qualificação completa com cruzamento exato de dados oficiais da CVM e PDFs manuais no Qdrant, direcionamento estratégico livre de bugs de acentuação, perguntas de discovery personalizadas e cases selecionados com base na dor real do cliente.
 
 ## O que já foi feito por mim
 
-1. **Conta de owner do N8N criada** — usei seu e-mail (`[REMOVED]`) e gerei uma senha
-   aleatória para destravar o setup inicial (só assim dava para ativar o workflow e testar via
-   API). **Troque essa senha assim que fizer login** — ela foi te passada separadamente pelo
-   assistente, fora deste arquivo, e não fica versionada no repositório.
-2. Workflow **"AI SDR - Qualificação de Leads"** importado e **ativado**.
-3. Testei o webhook real (`POST /webhook/ai-sdr`) com `{"message": "itau.com.br"}` — funcionou.
+1. Workflow **"AI SDR - Qualificação de Leads"** importado e **ativado**.
+2. Testei o webhook real (`POST /webhook/ai-sdr`) com `{"message": "itau.com.br"}` — funcionou.
 
 ## Para você testar de novo
 
