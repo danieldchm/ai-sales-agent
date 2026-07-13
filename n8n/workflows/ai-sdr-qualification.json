@@ -1114,6 +1114,22 @@
         "height": 360,
         "color": 7
       }
+    },
+    {
+      "id": "7b599531-1728-4b8d-9ae6-13264ea9d3a0",
+      "name": "Note Consolidação Final",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3540,
+        440
+      ],
+      "parameters": {
+        "content": "### 5. Consolidação e Merge dos Pipelines\nJunta os resultados consolidados da trilha de análise financeira (CVM/B3) com a trilha de enriquecimento web para avançar para a etapa de RAG.",
+        "width": 680,
+        "height": 320,
+        "color": 1
+      }
     }
   ],
   "connections": {
