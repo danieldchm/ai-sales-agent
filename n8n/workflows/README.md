@@ -247,33 +247,33 @@ em 2025-09-30" — confirma que os dados oficiais da CVM chegaram ao prompt e in
 - **Latência adicional**: dois downloads de ~10-30MB + descompactação de ~240MB + até ~10 chamadas
   extras de embedding, quando uma empresa é identificada como listada.
 
-## Atualização (2026-07-13): troca do LLM de classificação — Ollama/Gemma local → Google Gemini
+## Atualização (2026-07-13): Retorno ao LLM Ollama Local (Gemma4)
 
-A pedido do usuário ("atualizei o modelo para utilizar o gemini 3.5 flash, utilize-o no lugar do ollama
-por enquanto"), o node de classificação passou a usar a **API do Google Gemini** em vez do Ollama local.
+A arquitetura foi revertida para o **Ollama local (`gemma4:12b-mlx`)** a fim de garantir a premissa de um agente 100% open-source e gratuito sem dependência de chaves de API externas.
+* O nó `Google Gemini Chat Model` foi desativado e o fluxo principal voltou a usar o **`Ollama Chat Model`** com a credencial local `Ollama local (host.docker.internal:11434)`.
 
-**O que mudou:** o node `Ollama Chat Model` foi substituído por `Gemini Chat Model`
-(`@n8n/n8n-nodes-langchain.lmChatGoogleGemini`), usando a credencial `googlePalmApi` que o próprio
-usuário já havia criado no n8n (`Google Gemini(PaLM) Api account`). O node `Classificar com Gemma
-(Chain)` foi renomeado para `Classificar com Gemini (Chain)` para refletir a troca (nenhuma mudança de
-lógica, só o LLM conectado). Modelo configurado: `models/gemini-2.5-flash` — **nota:** "gemini 3.5
-flash" não corresponde a nenhuma string de modelo reconhecida pelo node no momento da configuração;
-usei o default documentado do node como ponto de partida. Se o usuário quis dizer uma versão específica
-diferente (ex.: `models/gemini-3-flash` ou outra), é só trocar o parâmetro `modelName` no node.
+---
 
-**Cuidado detectado:** durante essa troca, uma execução concorrente (rodada pelo próprio usuário
-diretamente na UI do n8n, com um node próprio chamado "Google Gemini Chat Model") revelou que o usuário
-estava editando o workflow pela UI em paralelo às mudanças feitas via API nesta sessão. Como os pushes
-via API substituem a definição inteira do workflow a partir de um arquivo local (sem mesclar com
-mudanças feitas na UI), há risco de um `PUT` sobrescrever edições manuais concorrentes. Nesta sessão
-isso foi resolvido reaplicando a troca de LLM de forma equivalente (reaproveitando a credencial que o
-usuário já tinha criado), mas vale ter em mente: **evitar editar o workflow pela UI do n8n enquanto
-mudanças estiverem sendo aplicadas via API na mesma sessão**, para não haver conflito.
+## Atualizações e Otimizações Críticas (2026-07-13)
 
-**Resultado:** tempo de execução ponta a ponta caiu de ~3-4 minutos (Gemma local via Ollama) para
-**~38 segundos** (Gemini via API) no teste com `weg.net` — melhoria substancial de latência, ao custo
-de depender de uma API externa (deixa de ser 100% local) e do uso ficar sujeito à cota/custo da API do
-Gemini.
+Durante esta rodada de homologação, as seguintes correções de programação e refinamentos de IA foram aplicados ao workflow:
+
+### 1. Resolução do Lineage do N8N
+* **Correção:** Alterado o uso de referências de itens em nós Javascript chave para usar o método `.all(0, 0)` em vez do `$input` e `$json` diretos após o nó de Upsert do Qdrant. Isso resolveu o problema do N8N perder a linhagem dos dados e retornar "chunks vazios" na etapa de fechamento.
+
+### 2. Tratamento de Encoding da CVM (Latin-1)
+* **Correção:** O nó `Buscar Cadastro CVM` foi modificado para baixar o arquivo como **File (Arquivo Binário)** em vez de texto direto. A leitura no nó seguinte foi atualizada para forçar a decodificação como `latin1`. Isso evitou a corrupção de acentos em nomes como `ITAÚ` (que antes virava `ITA UNIBANCO` e falhava no match).
+
+### 3. Filtro por Status CVM (Companhias Ativas)
+* **Correção:** Adicionado tratamento no nó `Identificar CD_CVM` para varrer o histórico de registros e **priorizar companhias ativas** (`SIT === 'ATIVO'`). Isso resolveu o caso do Itaú, que possuía um registro antigo e inativo de 1998 (`CANCELADA`) que era capturado incorretamente, impossibilitando a busca de balanços recentes.
+
+### 4. RAG de Cases sem Poluição Semântica (Foco na Dor)
+* **Melhoria de IA:** O nó de RAG (`Gerar Embedding (Ollama)`) para os cases da consultoria passou a usar como entrada unicamente a **dor descrita pelo vendedor (`dor_usuario_focada`)** em vez do perfil de pesquisa completo da empresa. Isso impede que o ramo da empresa "polua" os cases sugeridos (ex: sugerir cases industriais para uma dor de contratos jurídicos da WEG). Há um fallback inteligente para tendências de setor caso nenhuma dor seja fornecida.
+
+### 5. Tolerância a Acentos em Chaves do LLM (recomendacao/recomendação)
+* **Robustez:** O nó `Montar Resposta Final` foi atualizado para aceitar chaves com acentuação na resposta JSON estruturada gerada pelo Gemma4 (`dir.recomendacao || dir.recomendação`), eliminando o erro de impressão do direcionamento comercial como `n/d`.
+
+---
 
 ## Atualização (2026-07-13): upload manual de relatórios PDF (mecanismo paralelo)
 
