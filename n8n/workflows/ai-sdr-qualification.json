@@ -264,7 +264,13 @@
       "position": [
         2016,
         16
-      ]
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "PidMlabGfvA27KE9",
+          "name": "Ollama local (host.docker.internal:11434)"
+        }
+      }
     },
     {
       "parameters": {
