@@ -32,8 +32,8 @@ flowchart TD
     %% Definindo os nós com formas modernas
     User([👤 Vendedor / SDR])
     User2([👤 Admin])
-    ChatIn[💬 N8N Chat Trigger]
-    ChatOut[✅ Resposta no Chat N8N]
+    ChatIn(((🏁 INÍCIO: N8N Chat Trigger)))
+    ChatOut(((🎯 FIM: Resposta Final)))
     
     subgraph Frontend [Interação com Usuário]
         direction TB
@@ -113,9 +113,10 @@ flowchart TD
     classDef warning fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#ffffff;
     classDef database fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#ffffff;
     classDef trigger fill:#ec4899,stroke:#db2777,stroke-width:2px,color:#ffffff;
+    classDef startEnd fill:#0f172a,stroke:#3b82f6,stroke-width:4px,color:#ffffff,font-weight:bold;
 
     class User,User2 trigger;
-    class ChatIn,ChatOut primary;
+    class ChatIn,ChatOut startEnd;
     class Gemini,EmbedOllama,EmbedData success;
     class QdrantCases,QdrantFinance database;
     class MatchB3 warning;
