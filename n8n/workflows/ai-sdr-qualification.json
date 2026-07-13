@@ -1018,6 +1018,102 @@
           }
         }
       }
+    },
+    {
+      "id": "798dca35-5b8a-4bc4-a8a4-9794acce87ae",
+      "name": "Note Gatilho",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        150
+      ],
+      "parameters": {
+        "content": "## 1. Entrada e Gatilho\nRecebe o domínio e o contexto inicial do prospect via Chat ou Webhook.",
+        "width": 200,
+        "height": 120,
+        "color": 6
+      }
+    },
+    {
+      "id": "caea618d-738a-4469-bb68-46ed6bfa6528",
+      "name": "Note Web",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        150
+      ],
+      "parameters": {
+        "content": "## 2. Enriquecimento de Dados Web (SearXNG)\nFaz scraping do site e busca na web aberta por notícias da empresa, do setor e do mercado focado em IA para montar o dossiê da companhia.",
+        "width": 900,
+        "height": 120,
+        "color": 3
+      }
+    },
+    {
+      "id": "fc3c9163-061e-41a8-8d34-3b5618950ba9",
+      "name": "Note B3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        420
+      ],
+      "parameters": {
+        "content": "## 3. Verificação em Bolsa (B3)\nCruza o CNPJ e o nome na BrasilAPI e na Brapi para descobrir se a empresa é de capital aberto (o que significa que possui dados financeiros públicos).",
+        "width": 1200,
+        "height": 90,
+        "color": 4
+      }
+    },
+    {
+      "id": "ba1a74f9-3137-4b49-bfa2-b037c0ef700e",
+      "name": "Note CVM",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        500
+      ],
+      "parameters": {
+        "content": "## 4. Pipeline de Extração Financeira CVM\nBaixa os balanços gigantescos (ZIP) da CVM, encontra a DRE da empresa usando o CD_CVM, limpa os dados, faz chunking e vetoriza (Upsert no Qdrant).",
+        "width": 1800,
+        "height": 100,
+        "color": 5
+      }
+    },
+    {
+      "id": "8ebc3fe4-b073-40c9-b5de-c694ddc629d3",
+      "name": "Note Upload",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        950
+      ],
+      "parameters": {
+        "content": "## Fluxo Assíncrono: Upload Manual (PDF)\nPermite que o usuário envie PDFs confidenciais (ex: DRE auditado) que são extraídos, vetorizados e adicionados à mesma Collection do Qdrant.",
+        "width": 2200,
+        "height": 100,
+        "color": 2
+      }
+    },
+    {
+      "id": "1a584dba-78cc-4c82-b12f-5a838dd15e93",
+      "name": "Note Cognitivo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        150
+      ],
+      "parameters": {
+        "content": "## 5. Motor Cognitivo e Resposta Final (Ollama)\nAqui as três trilhas se juntam: Dados Web + Dados Financeiros (Qdrant) + Cases Semelhantes (Qdrant). O Gemma4 processa o prompt e emite o parecer.",
+        "width": 600,
+        "height": 120,
+        "color": 7
+      }
     }
   ],
   "connections": {
