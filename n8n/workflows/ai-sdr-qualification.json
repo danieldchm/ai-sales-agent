@@ -66,7 +66,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
+        720,
         300
       ],
       "parameters": {
@@ -81,8 +81,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
-        220
+        960,
+        200
       ],
       "parameters": {
         "method": "GET",
@@ -115,7 +115,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
+        960,
         300
       ],
       "parameters": {
@@ -149,8 +149,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
-        380
+        960,
+        400
       ],
       "parameters": {
         "method": "GET",
@@ -183,7 +183,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
+        1200,
         300
       ],
       "parameters": {
@@ -198,7 +198,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1200,
+        1380,
         300
       ],
       "parameters": {
@@ -219,7 +219,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1440,
+        1560,
         300
       ],
       "parameters": {
@@ -240,7 +240,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1680,
+        1800,
         300
       ],
       "parameters": {
@@ -255,7 +255,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.6,
       "position": [
-        1920,
+        2040,
         300
       ],
       "parameters": {
@@ -270,8 +270,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
       "typeVersion": 1,
       "position": [
-        1860,
-        520
+        1980,
+        500
       ],
       "parameters": {
         "model": "gemma4:12b-mlx",
@@ -285,8 +285,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        2000,
-        520
+        2100,
+        500
       ],
       "parameters": {
         "sessionIdType": "customKey",
@@ -300,7 +300,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2160,
+        2280,
         300
       ],
       "parameters": {
@@ -385,7 +385,7 @@
       "typeVersion": 4.2,
       "position": [
         1440,
-        520
+        680
       ],
       "parameters": {
         "method": "PUT",
@@ -411,7 +411,7 @@
       "typeVersion": 2.2,
       "position": [
         1680,
-        520
+        680
       ],
       "parameters": {
         "conditions": {
@@ -443,7 +443,7 @@
       "typeVersion": 2,
       "position": [
         1920,
-        420
+        760
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -457,8 +457,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2880,
-        620
+        2640,
+        520
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -472,8 +472,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3120,
-        620
+        2880,
+        520
       ],
       "parameters": {
         "method": "POST",
@@ -493,8 +493,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3360,
-        620
+        3120,
+        520
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -508,8 +508,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3600,
-        620
+        3360,
+        520
       ],
       "parameters": {
         "method": "PUT",
@@ -529,8 +529,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3840,
-        520
+        3600,
+        680
       ],
       "parameters": {
         "mode": "append",
@@ -543,8 +543,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4080,
-        520
+        3840,
+        680
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -558,8 +558,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        4320,
-        400
+        4080,
+        520
       ],
       "parameters": {
         "mode": "append",
@@ -573,7 +573,7 @@
       "typeVersion": 4.2,
       "position": [
         1760,
-        780
+        840
       ],
       "parameters": {
         "method": "POST",
@@ -594,7 +594,7 @@
       "typeVersion": 3.2,
       "position": [
         2000,
-        780
+        840
       ],
       "parameters": {
         "mode": "append",
@@ -607,8 +607,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1920,
-        620
+        1440,
+        520
       ],
       "parameters": {
         "method": "GET",
@@ -629,8 +629,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2160,
-        620
+        1680,
+        520
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -644,8 +644,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2400,
-        540
+        1920,
+        440
       ],
       "onError": "continueRegularOutput",
       "parameters": {
@@ -668,8 +668,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2400,
-        700
+        1920,
+        600
       ],
       "onError": "continueRegularOutput",
       "parameters": {
@@ -692,8 +692,8 @@
       "type": "n8n-nodes-base.compression",
       "typeVersion": 1.1,
       "position": [
-        2640,
-        540
+        2160,
+        440
       ],
       "onError": "continueRegularOutput",
       "parameters": {
@@ -708,8 +708,8 @@
       "type": "n8n-nodes-base.compression",
       "typeVersion": 1.1,
       "position": [
-        2640,
-        700
+        2160,
+        600
       ],
       "onError": "continueRegularOutput",
       "parameters": {
@@ -724,8 +724,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2880,
-        620
+        2400,
+        520
       ],
       "parameters": {
         "mode": "append",
@@ -985,7 +985,7 @@
       "typeVersion": 2,
       "position": [
         1920,
-        420
+        680
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
@@ -1000,7 +1000,7 @@
       "typeVersion": 4.2,
       "position": [
         2160,
-        420
+        680
       ],
       "parameters": {
         "method": "POST",
@@ -1020,98 +1020,98 @@
       }
     },
     {
-      "id": "798dca35-5b8a-4bc4-a8a4-9794acce87ae",
+      "id": "2c208695-d993-4abc-89c6-dfeeb1772874",
       "name": "Note Gatilho",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        0,
-        150
+        -80,
+        100
       ],
       "parameters": {
-        "content": "## 1. Entrada e Gatilho\nRecebe o domínio e o contexto inicial do prospect via Chat ou Webhook.",
-        "width": 200,
-        "height": 120,
+        "content": "### 1. Entrada e Gatilho\nRecebe os inputs via Chat UI ou Webhook.",
+        "width": 260,
+        "height": 360,
         "color": 6
       }
     },
     {
-      "id": "caea618d-738a-4469-bb68-46ed6bfa6528",
+      "id": "e83eb4af-23b3-419e-8715-d1c757719aec",
       "name": "Note Web",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        240,
-        150
+        200,
+        100
       ],
       "parameters": {
-        "content": "## 2. Enriquecimento de Dados Web (SearXNG)\nFaz scraping do site e busca na web aberta por notícias da empresa, do setor e do mercado focado em IA para montar o dossiê da companhia.",
-        "width": 900,
-        "height": 120,
+        "content": "### 2. Enriquecimento Web (SearXNG)\nBusca e consolida notícias institucionais, setoriais e tendências de IA.",
+        "width": 940,
+        "height": 360,
         "color": 3
       }
     },
     {
-      "id": "fc3c9163-061e-41a8-8d34-3b5618950ba9",
+      "id": "6ead7bf7-9aed-4e5e-a9b5-eefcdb8cc1d1",
       "name": "Note B3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        480,
-        420
+        440,
+        480
       ],
       "parameters": {
-        "content": "## 3. Verificação em Bolsa (B3)\nCruza o CNPJ e o nome na BrasilAPI e na Brapi para descobrir se a empresa é de capital aberto (o que significa que possui dados financeiros públicos).",
-        "width": 1200,
-        "height": 90,
+        "content": "### 3. Identificação B3\nBusca se a empresa é listada na Bolsa de Valores usando APIs oficiais.",
+        "width": 920,
+        "height": 160,
         "color": 4
       }
     },
     {
-      "id": "ba1a74f9-3137-4b49-bfa2-b037c0ef700e",
+      "id": "7c59002a-d23d-4162-ba5c-d91b172ac733",
       "name": "Note CVM",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1920,
-        500
+        1380,
+        380
       ],
       "parameters": {
-        "content": "## 4. Pipeline de Extração Financeira CVM\nBaixa os balanços gigantescos (ZIP) da CVM, encontra a DRE da empresa usando o CD_CVM, limpa os dados, faz chunking e vetoriza (Upsert no Qdrant).",
-        "width": 1800,
-        "height": 100,
+        "content": "### 4. Extração Financeira Governamental (CVM)\nBaixa os relatórios trimestrais (ITR) da CVM, filtra pelo código da empresa, extrai os balanços DRE, gera embeddings e indexa no Qdrant.",
+        "width": 2140,
+        "height": 320,
         "color": 5
       }
     },
     {
-      "id": "8ebc3fe4-b073-40c9-b5de-c694ddc629d3",
+      "id": "1f9f26b8-deb3-4b47-a146-2b1f12258b89",
       "name": "Note Upload",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        0,
-        950
+        -80,
+        900
       ],
       "parameters": {
-        "content": "## Fluxo Assíncrono: Upload Manual (PDF)\nPermite que o usuário envie PDFs confidenciais (ex: DRE auditado) que são extraídos, vetorizados e adicionados à mesma Collection do Qdrant.",
-        "width": 2200,
-        "height": 100,
+        "content": "### Fluxo Auxiliar: Upload de Relatórios Financeiros Manuais\nPermite indexar PDFs extras (demonstrações e relatórios anuais) diretamente na base vetorial Qdrant para enriquecer futuras análises.",
+        "width": 2400,
+        "height": 400,
         "color": 2
       }
     },
     {
-      "id": "1a584dba-78cc-4c82-b12f-5a838dd15e93",
+      "id": "8d609f7d-481f-4165-827a-a5a453b0df44",
       "name": "Note Cognitivo",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1680,
-        150
+        1160,
+        100
       ],
       "parameters": {
-        "content": "## 5. Motor Cognitivo e Resposta Final (Ollama)\nAqui as três trilhas se juntam: Dados Web + Dados Financeiros (Qdrant) + Cases Semelhantes (Qdrant). O Gemma4 processa o prompt e emite o parecer.",
-        "width": 600,
-        "height": 120,
+        "content": "### 5. RAG & Motor Cognitivo (Gemma4)\nConsolida os dados Web, Financeiros e do Qdrant para gerar o dossiê final de qualificação.",
+        "width": 1260,
+        "height": 360,
         "color": 7
       }
     }
